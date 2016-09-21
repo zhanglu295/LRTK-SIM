@@ -1,0 +1,33 @@
+# path of template fasta file
+Path_Fasta=./example/test.fa
+# coverage for long fragment
+CF=5
+# coverage for short reads
+CR=20
+# the average number of molecules for each droplet
+N_FP=10
+# the average length for long fragment (Kb)
+Mu_F=5
+# length of short reads (bp)
+SR=151
+# fast mode ('Y' or 'N'; only simulate uniform sequencing quality)
+Fast_mode=N
+# simulate sequencing error ('Y') or not ('N')
+Seq_error=N
+#path of the sequencing profile file
+Path_Seq_qual=./example/miseq_250bp_processed.txt
+# mean of insert size of short reads (bp)
+Mu_IS=1000
+# standard deviation of insert size of short reads (bp)
+Std_IS=10
+# barcode list
+Path_barcodepool=./example/barcodelist.txt
+# (option) Haploid (Hap=1) or Diploid (Hap=2)
+Hap=1
+# (option) including known variants from zipped vcf files. If Hap=2, you
+# should provide two vcf files as vcf1 and vcf2 
+# Notice :1) Make sure the *vcf.gz file was zipped using bgzip.
+#         2) Make sure the chromosome IDs are same in VCF and fasta file.
+#Path_VCF1=./example/hap1.vcf.gz
+#Path_VCF2=./example/hap2.vcf.gz
+
