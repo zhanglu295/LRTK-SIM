@@ -385,22 +385,30 @@ def SIMSeqQual(Qual_dict,Sequence,Par):
                     if sum(line_select.substitute[0:5])!=0:
                        validate=1
                        real_nuc=deter_nucleo(['A','C','G','T','N'],line_select.substitute[0:5])
-                       Sim_fastq.seq[i]=real_nuc
+                       Listseq=list(Sim_fastq.seq)
+                       Listseq[i]=real_nuc
+                       Sim_fastq.seq="".join(Listseq)
                 if Sequence[i]=='T':
                     if sum(line_select.substitute[15:20])!=0:
                        validate=1
                        real_nuc=deter_nucleo(['A','C','G','T','N'],line_select.substitute[15:20])
-                       Sim_fastq.seq[i]=real_nuc
+                       Listseq=list(Sim_fastq.seq)
+                       Listseq[i]=real_nuc
+                       Sim_fastq.seq="".join(Listseq)
                 if Sequence[i]=='C':
                     if sum(line_select.substitute[5:10])!=0:
                        validate=1
                        real_nuc=deter_nucleo(['A','C','G','T','N'],line_select.substitute[5:10])
-                       Sim_fastq.seq[i]=real_nuc
+                       Listseq=list(Sim_fastq.seq)
+                       Listseq[i]=real_nuc
+                       Sim_fastq.seq="".join(Listseq)
                 if Sequence[i]=='G':
                     if sum(line_select.substitute[10:15])!=0:
                        validate=1
                        real_nuc=deter_nucleo(['A','C','G','T','N'],line_select.substitute[10:15])
-                       Sim_fastq.seq[i]=real_nuc
+                       Listseq=list(Sim_fastq.seq)
+                       Listseq[i]=real_nuc
+                       Sim_fastq.seq="".join(Listseq)
                 if Sequence[i]=='N':
                     validate=1
             Sim_fastq.qual=Sim_fastq.qual+chr(Pos_qual[rand_qual].phred+33)
