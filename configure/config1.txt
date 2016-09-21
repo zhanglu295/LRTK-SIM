@@ -13,7 +13,7 @@ SR=151
 # fast mode ('Y' or 'N'; only simulate uniform sequencing quality)
 Fast_mode=N
 # simulate sequencing error ('Y') or not ('N')
-Seq_error=N
+Seq_error=Y
 #path of the sequencing profile file
 Path_Seq_qual=./example/miseq_250bp_processed.txt
 # mean of insert size of short reads (bp)

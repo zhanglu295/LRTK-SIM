@@ -361,54 +361,49 @@ def Input_Qual(Par):
     return Qual_dict
 def deter_nucleo(Seq_Nuc,Num_Nuc):
     Num_Nuc.insert(0,0)
+    Seq_Nuc.insert(0,'X')
     length=len(Num_Nuc)
-    real_nuc=None
+    real_nuc=''
     rand_nuc=np.random.random_integers(low=0, high=sum(Num_Nuc))
     for i in range(length-1):
         if rand_nuc>= Num_Nuc[i] and rand_nuc<=Num_Nuc[i+1]:
             real_nuc=Seq_Nuc[i+1]
+            break
     return real_nuc
 
 def SIMSeqQual(Qual_dict,Sequence,Par):
     length=len(Sequence)
     Qual=''
     Sim_fastq=Short_reads(Sequence,Qual)
+    Listseq=list(Sim_fastq.seq)
     if Par.Seq_error=='Y':
         for i in range(length):
             Pos_qual=Qual_dict.get(str(i))
             validate=0
             rand_qual=0
             while validate==0:
-                rand_qual=np.random.random_integers(low=0, high=len(Pos_qual))
+                rand_qual=np.random.random_integers(low=0, high=len(Pos_qual)-1)
                 line_select=Pos_qual[rand_qual]
                 if Sequence[i]=='A':
-                    if sum(line_select.substitute[0:5])!=0:
+                    if line_select.substitute[4]!=0:
                        validate=1
                        real_nuc=deter_nucleo(['A','C','G','T','N'],line_select.substitute[0:5])
-                       Listseq=list(Sim_fastq.seq)
                        Listseq[i]=real_nuc
-                       Sim_fastq.seq="".join(Listseq)
                 if Sequence[i]=='T':
-                    if sum(line_select.substitute[15:20])!=0:
+                    if line_select.substitute[19]!=0:
                        validate=1
                        real_nuc=deter_nucleo(['A','C','G','T','N'],line_select.substitute[15:20])
-                       Listseq=list(Sim_fastq.seq)
                        Listseq[i]=real_nuc
-                       Sim_fastq.seq="".join(Listseq)
                 if Sequence[i]=='C':
-                    if sum(line_select.substitute[5:10])!=0:
+                    if line_select.substitute[9]!=0:
                        validate=1
                        real_nuc=deter_nucleo(['A','C','G','T','N'],line_select.substitute[5:10])
-                       Listseq=list(Sim_fastq.seq)
                        Listseq[i]=real_nuc
-                       Sim_fastq.seq="".join(Listseq)
                 if Sequence[i]=='G':
-                    if sum(line_select.substitute[10:15])!=0:
+                    if line_select.substitute[14]!=0:
                        validate=1
                        real_nuc=deter_nucleo(['A','C','G','T','N'],line_select.substitute[10:15])
-                       Listseq=list(Sim_fastq.seq)
                        Listseq[i]=real_nuc
-                       Sim_fastq.seq="".join(Listseq)
                 if Sequence[i]=='N':
                     validate=1
             Sim_fastq.qual=Sim_fastq.qual+chr(Pos_qual[rand_qual].phred+33)
@@ -421,19 +416,20 @@ def SIMSeqQual(Qual_dict,Sequence,Par):
                 rand_qual=np.random.random_integers(low=0, high=len(Pos_qual)-1)
                 line_select=Pos_qual[rand_qual]
                 if Sequence[i]=='A':
-                    if sum(line_select.substitute[0:5])!=0:
+                    if line_select.substitute[4]!=0:
                        validate=1
                 elif Sequence[i]=='T':
-                    if sum(line_select.substitute[15:20])!=0:
+                    if line_select.substitute[19]!=0:
                        validate=1
                 elif Sequence[i]=='C':
-                    if sum(line_select.substitute[5:10])!=0:
+                    if line_select.substitute[9]!=0:
                        validate=1
                 elif Sequence[i]=='G':
-                    if  sum(line_select.substitute[10:15])!=0:
+                    if  line_select.substitute[14]!=0:
                         validate=1
                 elif Sequence[i]=='N':
                     validate=1
+            Sim_fastq.seq="".join(Listseq)
             Sim_fastq.qual= Sim_fastq.qual+chr(Pos_qual[rand_qual].phred+33)
     return Sim_fastq
 def SIMSR(MolSet,Par):
@@ -464,6 +460,7 @@ def SIMSR(MolSet,Par):
             if Par.Fast_mode=='N':
                Sim_seq1=SIMSeqQual(Qual_dict,MolSet[i].barcode+'NNNNNNN'+read1,Par)
                Sim_seq2=SIMSeqQual(Qual_dict,read2,Par)
+              # print(len(Sim_seq2.seq))
                read1seq=Sim_seq1.seq
                read2seq=Sim_seq2.seq
                read1qual=Sim_seq1.qual
