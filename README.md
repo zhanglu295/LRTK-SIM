@@ -21,16 +21,12 @@ python3 SIMLR.py ./configure
 The configuration fold includs parameter file for each library.
 For example: two libraries are simulated
 
-./configure
-----------config1.txt (parameters for lib1)
-----------config2.txt (parameters for lib2)
+./configure\\
+----------config1.txt (parameters for lib1)\\
+----------config2.txt (parameters for lib2)\\
 
 The simulated fastq files are written to the folder generated for each
-library.
-Two histograms are showed
-1. Len_Molecule_hist.png: the length of molecules
-number_Molecule_hist.png: the number of molecules in droplets
-generated for
-
-
-
+library.\\
+Two histograms are showed\\
+1. Len_Molecule_hist.png: the length of molecules\\
+2. Number_Molecule_hist.png: the number of molecules in droplets
