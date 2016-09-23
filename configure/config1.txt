@@ -3,7 +3,7 @@ Path_Fasta=./example/test.fa
 # coverage for long fragment
 CF=5
 # coverage for short reads
-CR=20
+CR=2
 # the average number of molecules for each droplet
 N_FP=10
 # the average length for long fragment (Kb)
@@ -14,8 +14,10 @@ SR=151
 Fast_mode=N
 # simulate sequencing error ('Y') or not ('N')
 Seq_error=Y
-#path of the sequencing profile file
-Path_Seq_qual=./example/miseq_250bp_processed.txt
+#path to sequencing error profile
+Path_Seq_qual=./example/error_profile_reads.txt
+#path to barcode error profile
+Path_Barcode_qual=./example/error_profile_barcodes.txt
 # mean of insert size of short reads (bp)
 Mu_IS=1000
 # standard deviation of insert size of short reads (bp)

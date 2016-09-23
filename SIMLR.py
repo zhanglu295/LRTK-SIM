@@ -6,7 +6,7 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import plotly.plotly as py
-#import pdb
+import pdb
 #pdb.set_trace()
 #Parameter defination
 large_droplet=4000000
@@ -44,6 +44,7 @@ class parameter(object):
         self.hap=1
         self.Seq_error='N'
         self.Seq_qual='N'
+        self.Barcode_qual='N'
         self.Fast_mode='Y'
 #read parameters from file
 def input_parameter(argv,parameter_struc):
@@ -55,11 +56,13 @@ def input_parameter(argv,parameter_struc):
            if Par[0]=='Path_Fasta':
               parameter_struc.Fasta=Par[1].strip('\n')
            elif Par[0]=='Fast_mode':
-               parameter_struc.Fast_mode=Par[1].strip('\n')
+              parameter_struc.Fast_mode=Par[1].strip('\n')
            elif Par[0]=='Seq_error':
               parameter_struc.Seq_error=Par[1].strip('\n')
            elif Par[0]=='Path_Seq_qual':
               parameter_struc.Seq_qual=Par[1].strip('\n')
+           elif Par[0]=='Path_Barcode_qual':
+              parameter_struc.Barcode_qual=Par[1].strip('\n')
            elif Par[0]=='CF':
               parameter_struc.CF=float(Par[1].strip('\n'))
            elif Par[0]=='Mu_IS':
@@ -335,7 +338,30 @@ def reverseq(seq):
     rev_complementary=complementary[::-1]
     return rev_complementary
 
-def Input_Qual(Par):
+def Input_BarcodeQual(Par):
+    f=open(Par.Barcode_qual,"r")
+    line_index=0
+    position=0
+    Qual_dict={}
+    pos_qual=[]
+    for line in f:
+        if line_index>0:
+           change=[]
+           linequal=line.strip('\t,\n')
+           qualarray=linequal.split('\t')
+           if position!=int(qualarray[0]):
+              Qual_dict[str(position)]=pos_qual
+              pos_qual=[]
+              position=int(qualarray[0])
+           for i in range(5):
+               change.append(int(qualarray[i+2]))
+           error_profile_line=Qual_Substitute(int(qualarray[1]),change)
+           pos_qual.append(error_profile_line)
+        line_index=line_index+1
+    Qual_dict[str(position)]=pos_qual
+    f.close()
+    return Qual_dict
+def Input_SeqQual(Par):
     f=open(Par.Seq_qual,"r")
     line_index=0
     position=0
@@ -344,7 +370,7 @@ def Input_Qual(Par):
     for line in f:
         if line_index>0:
            change=[]
-           linequal=line.strip('\n')
+           linequal=line.strip('\t,\n')
            qualarray=linequal.split('\t')
            if position!=int(qualarray[0]):
               Qual_dict[str(position)]=pos_qual
@@ -352,11 +378,10 @@ def Input_Qual(Par):
               position=int(qualarray[0])
            for i in range(20):
                change.append(int(qualarray[i+2]))
-           #print(int(qualarray[1]))
            error_profile_line=Qual_Substitute(int(qualarray[1]),change)
-          # print(error_profile_line.phred)
            pos_qual.append(error_profile_line)
         line_index=line_index+1
+    Qual_dict[str(position)]=pos_qual
     f.close()
     return Qual_dict
 def deter_nucleo(Seq_Nuc,Num_Nuc):
@@ -370,7 +395,35 @@ def deter_nucleo(Seq_Nuc,Num_Nuc):
             real_nuc=Seq_Nuc[i+1]
             break
     return real_nuc
-
+def SIMBarcodeQual(Qual_dict,Sequence,Par):
+    length=len(Sequence)
+    Qual=''
+    Sim_fastq=Short_reads(Sequence,Qual)
+    Listseq=list(Sim_fastq.seq)
+    for i in range(length):
+        Pos_qual=Qual_dict.get(str(i))
+        validate=0
+        rand_qual=0
+        while validate==0:
+            rand_qual=np.random.random_integers(low=0, high=len(Pos_qual)-1)
+            line_select=Pos_qual[rand_qual]
+            if Sequence[i]=='A':
+               if line_select.substitute[0]!=0:
+                  validate=1
+            elif Sequence[i]=='T':
+               if line_select.substitute[3]!=0:
+                       validate=1
+            elif Sequence[i]=='C':
+               if line_select.substitute[1]!=0:
+                       validate=1
+            elif Sequence[i]=='G':
+               if  line_select.substitute[2]!=0:
+                        validate=1
+            elif Sequence[i]=='N':
+                    validate=1
+        Sim_fastq.seq="".join(Listseq)
+        Sim_fastq.qual= Sim_fastq.qual+chr(Pos_qual[rand_qual].phred+33)
+    return Sim_fastq
 def SIMSeqQual(Qual_dict,Sequence,Par):
     length=len(Sequence)
     Qual=''
@@ -435,7 +488,8 @@ def SIMSeqQual(Qual_dict,Sequence,Par):
 def SIMSR(MolSet,Par):
     f_reads = open('read-RA_si-CCTGGAGA_lane-001-chunk-001.fastq', "w")
     f_sample = open('read-I1_si-CCTGGAGA_lane-001-chunk-001.fastq', "w")
-    Qual_dict=Input_Qual(Par)
+    SeqQual_dict=Input_SeqQual(Par)
+    BarcodeQual_dict=Input_BarcodeQual(Par)
     for i in range(len(MolSet)):
         print('Finish  '+str(i+1)+'/'+str(len(MolSet)),end="\r")
         num_reads=int(int(MolSet[i].length/(Par.SR*2))*Par.CR)
@@ -458,19 +512,19 @@ def SIMSR(MolSet,Par):
             read1qual=''
             read2qual=''
             if Par.Fast_mode=='N':
-               Sim_seq1=SIMSeqQual(Qual_dict,MolSet[i].barcode+'NNNNNNN'+read1,Par)
-               Sim_seq2=SIMSeqQual(Qual_dict,read2,Par)
-              # print(len(Sim_seq2.seq))
-               read1seq=Sim_seq1.seq
+               Sim_seq1=SIMSeqQual(SeqQual_dict,read1,Par)
+               Sim_seq2=SIMSeqQual(SeqQual_dict,read2,Par)
+               Sim_barcode=SIMBarcodeQual(BarcodeQual_dict,MolSet[i].barcode,Par)
+               read1seq=MolSet[i].barcode+'NNNNNNN'+Sim_seq1.seq
                read2seq=Sim_seq2.seq
-               read1qual=Sim_seq1.qual
+               read1qual=Sim_barcode.qual+'KKKKKKK'+Sim_seq1.qual
                read2qual=Sim_seq2.qual
             else:
                read1seq=MolSet[i].barcode+'NNNNNNN'+read1
                read2seq=read2
                read1qual='K'*Par.SR
                read2qual='K'*Par.SR
-            readname='@ST-K00126：Molecul'+str(i+1)+':H5W53BBXX:'+str(MolSet[i].start)+':'+str(MolSet[i].end)+'_'+str(start_for)+'_'+str(end_for)+':35673'
+            readname='@ST-K00126：'+str(i+1)+':H5W53BBXX:'+str(MolSet[i].start)+':'+str(MolSet[i].end)+':'+str(start_for)+':'+str(end_for)
             f_reads.write(readname+' 1:N:0\n')
             f_reads.write(read1seq+'\n')
             f_reads.write('+\n')
