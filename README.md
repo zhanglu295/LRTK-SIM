@@ -32,6 +32,7 @@ The simulated fastq files are written to the folder generated for each
 library.
 
 Two histograms are showed
+
 1. Len_Molecule_hist.png: the length of molecules
 
 2. Number_Molecule_hist.png: the number of molecules in droplets
