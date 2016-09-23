@@ -389,7 +389,7 @@ def deter_nucleo(Seq_Nuc,Num_Nuc):
     Seq_Nuc.insert(0,'X')
     length=len(Num_Nuc)
     real_nuc=''
-    rand_nuc=np.random.random_integers(low=0, high=sum(Num_Nuc))
+    rand_nuc=np.random.random_integers(low=0, high=Num_Nuc[length-1])
     for i in range(length-1):
         if rand_nuc>= Num_Nuc[i] and rand_nuc<=Num_Nuc[i+1]:
             real_nuc=Seq_Nuc[i+1]
