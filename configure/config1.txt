@@ -1,5 +1,5 @@
 # path of template fasta file
-Path_Fasta=./example/test.fa
+Path_Fasta=./example/chr19.fa
 # coverage for long fragment
 CF=2
 # coverage for short reads
