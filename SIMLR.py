@@ -150,22 +150,29 @@ def randomlong(Par,seq):
     #randome simulate molecules
     MolSet=[]
     For_hist=[]
-   # print(N_frag)
     for i in range(N_frag):
-        #print(i)
-        start=int(np.random.uniform(low=1,high=lensingle))
+        start=int(np.random.uniform(low=0,high=lensingle))
         length=int(np.random.exponential(scale=Par.Mu_F*1000))
-        #print(length)
         end=start+length-1
+        if length==0:
+           continue
         if end>lensingle:
-           Molseq=seq[length:lensingle]
-           NewMol=Molecule(Molseq,lensingle-length,start,end)
+           Molseq=seq[start:lensingle]
+           lengthnew=lensingle-length
+           nPos=Molseq.count('N')
+           if nPos/lengthnew>0.25:
+                continue
+           NewMol=Molecule(Molseq,lengthnew,start,end)
            MolSet.append(NewMol)
         else:
            Molseq=seq[start:end]
+           nPos=Molseq.count('N')
+           if nPos/length>0.25:
+              continue
            NewMol=Molecule(Molseq,length-1,start,end)
            MolSet.append(NewMol)
         For_hist.append(length/1000)
+    N_frag=len(MolSet)
     plt.hist(For_hist)
     plt.xlabel('Molecule length')
     plt.ylabel('Number of molecules')
@@ -201,7 +208,6 @@ def deternumdroplet(N_frag,N_FP):
 def selectbarcode(pool,assign_drop,MolSet,droplet_container):
     #permute index of long fragment for random sampling
     permutnum=np.random.permutation(N_frag)
-  #  print(N_frag)
     #include barcode in the list
     barcode=[]
     N_droplet=len(assign_drop)
@@ -214,14 +220,12 @@ def selectbarcode(pool,assign_drop,MolSet,droplet_container):
             break
     f.close()
     start=0
-   # print(N_droplet)
     for i in range(N_droplet):
         num_molecule_per_partition=assign_drop[i]
         index_molecule=permutnum[start:start+num_molecule_per_partition]
         totalseqlen=0
         temp=[]
         start=start+num_molecule_per_partition
-     # print(num_molecule_per_partition)
         for j in range(num_molecule_per_partition):
             index=index_molecule[j]
             temp.append(index)
