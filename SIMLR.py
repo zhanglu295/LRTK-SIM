@@ -158,7 +158,7 @@ def randomlong(Par,seq):
            continue
         if end>lensingle:
            Molseq=seq[start:lensingle]
-           lengthnew=lensingle-length
+           lengthnew=lensingle-start
            nPos=Molseq.count('N')
            if nPos/lengthnew>0.25:
                 continue

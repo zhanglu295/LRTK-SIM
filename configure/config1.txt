@@ -1,13 +1,13 @@
 # path of template fasta file
-Path_Fasta=./example/chr19.fa
+Path_Fasta=./example/test.fa
 # coverage for long fragment
-CF=20
+CF=2
 # coverage for short reads
 CR=5
 # the average number of molecules for each droplet
 N_FP=10
 # the average length for long fragment (Kb)
-Mu_F=30
+Mu_F=10
 # length of short reads (bp)
 SR=151
 # fast mode ('Y' or 'N'; only simulate uniform sequencing quality)
