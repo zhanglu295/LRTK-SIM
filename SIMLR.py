@@ -161,7 +161,7 @@ def randomlong(Par,seq):
            lengthnew=lensingle-start
            nPos=Molseq.count('N')
            if nPos>0:
-                continue
+              continue
            NewMol=Molecule(Molseq,lengthnew,start,end)
            MolSet.append(NewMol)
         else:
