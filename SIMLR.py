@@ -528,7 +528,7 @@ def SIMSR(MolSet,Par):
                read2seq=read2
                read1qual='K'*Par.SR
                read2qual='K'*Par.SR
-            readname='@ST-K00126：'+str(i+1)+':H5W53BBXX:'+str(MolSet[i].start)+':'+str(MolSet[i].end)+':'+str(start_for)+':'+str(end_for)
+            readname='@ST-K00126:'+str(i+1)+':H5W53BBXX:'+str(MolSet[i].start)+':'+str(MolSet[i].end)+':'+str(start_for)+':'+str(end_for)
             f_reads.write(readname+' 1:N:0\n')
             f_reads.write(read1seq+'\n')
             f_reads.write('+\n')
