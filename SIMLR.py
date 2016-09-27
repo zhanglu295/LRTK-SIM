@@ -554,7 +554,7 @@ def main():
     Par=parameter()
     hap=1
     for i in range(len(list)):
-        print('processing library '+str(i+1))
+        print('processing library '+str(i+1)+' for '+list[i])
         os.system('mkdir '+sys.argv[1]+'/lib'+str(i+1))
         deter=input_parameter(sys.argv[1]+'/'+list[i],Par)
         if deter==1:
