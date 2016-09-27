@@ -263,7 +263,7 @@ def diploid(Par,deter,lib):
            #print(assign_drop)
            MolSet=selectbarcode(Par.barcodepool,assign_drop,MolSet,droplet_container)
            print('assign barcodes to molecules finished (hap'+str(j+1)+')')
-           MolSet=randomlong(Par,seq)
+           SIMSR(MolSet,Par)
            os.system('mv read-RA_si-CCTGGAGA_lane-001-chunk-001.fastq.gz '+sys.argv[1]+'/lib'+str(lib)+'/hap'+str(j+1))
            os.system('mv read-I1_si-CCTGGAGA_lane-001-chunk-001.fastq.gz '+sys.argv[1]+'/lib'+str(lib)+'/hap'+str(j+1))
            os.system('mv Num_Molecule_hist.png '+sys.argv[1]+'/lib'+str(lib)+'/hap'+str(j+1))
