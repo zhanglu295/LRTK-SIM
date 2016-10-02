@@ -11,11 +11,11 @@ Mu_F=10
 # length of short reads (bp)
 SR=151
 # fast mode ('Y' or 'N'; only simulate uniform sequencing quality)
-Fast_mode=Y
+Fast_mode=N
 # simulate sequencing error ('Y') or not ('N')
-Seq_error=N
+Seq_error=Y
 #path to sequencing error profile
-Path_Seq_qual=./example/error_profile_reads.txt
+Path_Seq_qual=./example/miseq_250bp_processed.txt
 #path to barcode error profile
 Path_Barcode_qual=./example/error_profile_barcodes.txt
 # mean of insert size of short reads (bp)
