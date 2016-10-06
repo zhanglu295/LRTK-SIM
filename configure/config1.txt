@@ -1,25 +1,27 @@
 # path of template fasta file
-Path_Fasta=./example/chr19.fa
+Path_Fasta=./example/quater.fa
 # coverage for long fragment
-CF=2
+CF=300
 # coverage for short reads
-CR=5
+CR=0.2
 # the average number of molecules for each droplet
-N_FP=10
+N_FP=8
 # the average length for long fragment (Kb)
-Mu_F=10
+Mu_F=40
 # length of short reads (bp)
 SR=151
 # fast mode ('Y' or 'N'; only simulate uniform sequencing quality)
-Fast_mode=N
+Fast_mode=Y
 # simulate sequencing error ('Y') or not ('N')
-Seq_error=Y
+Seq_error=N
+# sequencing error rate
+Error_rate=0.01
 #path to sequencing error profile
-Path_Seq_qual=./example/miseq_250bp_processed.txt
+Path_Seq_qual=./example/error_profile_reads_processed.txt
 #path to barcode error profile
-Path_Barcode_qual=./example/error_profile_barcodes.txt
+Path_Barcode_qual=./example/error_profile_barcode.txt
 # mean of insert size of short reads (bp)
-Mu_IS=1000
+Mu_IS=400
 # standard deviation of insert size of short reads (bp)
 Std_IS=10
 # barcode list

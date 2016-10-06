@@ -9,13 +9,15 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import plotly.plotly as py
 import pdb
+import time
+from collections import defaultdict
 #pdb.set_trace()
 #Parameter defination
 large_droplet=4000000
 large_template=1000000
 class Molecule(object):
-    def __init__(self,sequence,length,start,end):
-        self.seq=sequence.upper()
+    def __init__(self,length,start,end):
+        #self.seq=sequence.upper()
         self.length=length
         self.index_droplet=0
         self.barcode='Null'
@@ -58,6 +60,7 @@ class parameter(object):
         self.Seq_qual='N'
         self.Barcode_qual='N'
         self.Fast_mode='Y'
+        self.Error_rate=0
 #read parameters from file
 def input_parameter(argv,parameter_struc):
     deter=1
@@ -71,6 +74,8 @@ def input_parameter(argv,parameter_struc):
               parameter_struc.Fast_mode=Par[1].strip('\n')
            elif Par[0]=='Seq_error':
               parameter_struc.Seq_error=Par[1].strip('\n')
+           elif Par[0]=='Error_rate':
+              parameter_struc.Error_rate=float(Par[1].strip('\n'))
            elif Par[0]=='Path_Seq_qual':
               parameter_struc.Seq_qual=Par[1].strip('\n')
            elif Par[0]=='Path_Barcode_qual':
@@ -174,14 +179,14 @@ def randomlong(Par,seq):
            nPos=Molseq.count('N')
            if nPos>0:
               continue
-           NewMol=Molecule(Molseq,lengthnew,start,end)
+           NewMol=Molecule(lengthnew,start,lensingle)
            MolSet.append(NewMol)
         else:
            Molseq=seq[start:end]
            nPos=Molseq.count('N')
            if nPos>0:
               continue
-           NewMol=Molecule(Molseq,length-1,start,end)
+           NewMol=Molecule(length-1,start,end)
            MolSet.append(NewMol)
         For_hist.append(length/1000)
     N_frag=len(MolSet)
@@ -330,8 +335,7 @@ def haploid(Par,deter,lib):
     MolSet=selectbarcode(Par.barcodepool,assign_drop,MolSet,droplet_container)
     print('assign barcode to molecule finished')
    # print(MolSet[0].barcode)
-    eva_num_reads=int(len(seq)/(Par.SR*2)*Par.CR*Par.CF)
-    SIMSR(MolSet,Par,eva_num_reads)
+    SIMSR(MolSet,Par,seq)
     os.system('mv read-RA_si-CCTGGAGA_lane-001-chunk-001.fastq.gz '+sys.argv[1]+'/lib'+str(lib))
     os.system('mv read-I1_si-CCTGGAGA_lane-001-chunk-001.fastq.gz '+sys.argv[1]+'/lib'+str(lib))
     os.system('mv Num_Molecule_hist.png '+sys.argv[1]+'/lib'+str(lib))
@@ -359,196 +363,109 @@ def Input_BarcodeQual(Par):
     f=open(Par.Barcode_qual,"r")
     line_index=0
     position=0
-    Qual_dict={}
-    pos_qual=[]
+    Qual_dict=defaultdict(list)
+    Prob_dict=defaultdict(list)
+    #pos_qual={}
     for line in f:
         if line_index>0:
-           change=[]
            linequal=line.strip('\t,\n')
            qualarray=linequal.split('\t')
-           if position!=int(qualarray[0]):
-              Qual_dict[str(position)]=pos_qual
-              pos_qual=[]
-              position=int(qualarray[0])
-           for i in range(5):
-               change.append(int(qualarray[i+2]))
-           error_profile_line=Qual_Substitute(int(qualarray[1]),change)
-           pos_qual.append(error_profile_line)
+           Qual_dict[qualarray[0]].append(ord(qualarray[1]))
+           Prob_dict[qualarray[0]].append(float(qualarray[2]))
+          # if position!=int(qualarray[0]):
+          #    Qual_dict[str(position)]=pos_qual
+          #    pos_qual={}
+          #    position=int(qualarray[0])
+           #for i in range(6):
+           #    change.append(int(qualarray[i+2]))
+          # pos_qual[ord(qualarray[1])]=change
         line_index=line_index+1
-    Qual_dict[str(position)]=pos_qual
+    #Qual_dict[str(position)]=pos_qual
     f.close()
-    return Qual_dict
+    return Qual_dict,Prob_dict
 def Input_SeqQual(Par):
     f=open(Par.Seq_qual,"r")
     line_index=0
     position=0
-    Qual_dict={}
-    pos_qual=[]
+    Qual_dict=defaultdict(list)
+    Prob_dict=defaultdict(list)
+    Substitute_dict=defaultdict(list)
+    #pos_qual={}
     for line in f:
         if line_index>0:
            change=[]
            linequal=line.strip('\t,\n')
            qualarray=linequal.split('\t')
-           if position!=int(qualarray[0]):
-              Qual_dict[str(position)]=pos_qual
-              pos_qual=[]
-              position=int(qualarray[0])
-           for i in range(20):
-               change.append(float(qualarray[i+2]))
-           error_profile_line=Qual_Substitute(int(qualarray[1]),change)
-           pos_qual.append(error_profile_line)
+           Qual_dict[qualarray[0]].append(ord(qualarray[1]))
+           Prob_dict[qualarray[0]].append(float(qualarray[2]))
+           Substitute_dict[(qualarray[0],ord(qualarray[1]))]=list(map(float,qualarray[3:]))
+           #print(len(list(map(float,qualarray[3:]))))
+           #if position!=int(qualarray[0]):
+           #   Qual_dict[str(position)]=pos_qual
+           #   pos_qual={}
+           #   position=int(qualarray[0])
+           #for i in range(21):
+           #    change.append(float(qualarray[i+2]))
+           #error_profile_line=Qual_Substitute(ord(qualarray[1]),change)
+           #pos_qual.append(error_profile_line)
+           #pos_qual[ord(qualarray[1])]=change
         line_index=line_index+1
-    Qual_dict[str(position)]=pos_qual
+    #Qual_dict[str(position)]=pos_qual
     f.close()
-    return Qual_dict
-def SIMBarcodeQual(Qual_dict,Sequence,Par):
-    length=len(Sequence)
-    Qual=''
-    Sim_fastq=Short_reads(Sequence,Qual)
-    Listseq=list(Sim_fastq.seq)
-    for i in range(length):
-        Pos_qual=Qual_dict.get(str(i))
-        validate=0
-        rand_qual=0
-        while validate==0:
-            rand_qual=np.random.random_integers(low=0, high=len(Pos_qual)-1)
-            line_select=Pos_qual[rand_qual]
-            if Sequence[i]=='A':
-               if line_select.substitute[0]!=0:
-                  validate=1
-            elif Sequence[i]=='T':
-               if line_select.substitute[3]!=0:
-                       validate=1
-            elif Sequence[i]=='C':
-               if line_select.substitute[1]!=0:
-                       validate=1
-            elif Sequence[i]=='G':
-               if  line_select.substitute[2]!=0:
-                        validate=1
-            elif Sequence[i]=='N':
-                    validate=1
-        Sim_fastq.seq="".join(Listseq)
-        Sim_fastq.qual= Sim_fastq.qual+chr(Pos_qual[rand_qual].phred+33)
-    return Sim_fastq
-def SIMSeqQual(Qual_dict,Sequence,Par):
-    length=len(Sequence)
-    Qual=''
-    Sim_fastq=Short_reads(Sequence,Qual)
-    Listseq=list(Sim_fastq.seq)
-    if Par.Seq_error=='Y':
-        Seqmatrix=['A','C','G','T','N']
-        for i in range(length):
-            Pos_qual=Qual_dict.get(str(i))
-            validate=0
-            rand_qual=0
-            while validate==0:
-                rand_qual=np.random.random_integers(low=0, high=len(Pos_qual)-1)
-                line_select=Pos_qual[rand_qual]
-                if Sequence[i]=='A':
-                   if sum(line_select.substitute[0:5])!=0:
-                      validate=1
-                      rand_nuc=np.random.choice(5,1,p=np.asarray(line_select.substitute[0:5]))
-                      Listseq[i]=Seqmatrix[rand_nuc[0]]
-                if Sequence[i]=='T':
-                   if sum(line_select.substitute[15:20])!=0:
-                      validate=1
-                      rand_nuc=np.random.choice(5,1,p=np.asarray(line_select.substitute[15:20]))
-                      Listseq[i]=Seqmatrix[rand_nuc[0]]
-                if Sequence[i]=='C':
-                   if sum(line_select.substitute[5:10])!=0:
-                      validate=1
-                      rand_nuc=np.random.choice(5,1,p=np.asarray(line_select.substitute[5:10]))
-                      Listseq[i]=Seqmatrix[rand_nuc[0]]
-                if Sequence[i]=='G':
-                   if sum(line_select.substitute[10:15])!=0:
-                      validate=1
-                      rand_nuc=np.random.choice(5,1,p=np.asarray(line_select.substitute[10:15]))
-                      Listseq[i]=Seqmatrix[rand_nuc[0]]
-                if Sequence[i]=='N':
-                      validate=1
-            Sim_fastq.qual=Sim_fastq.qual+chr(Pos_qual[rand_qual].phred+33)
-    if Par.Seq_error=='N':
-        for i in range(length):
-            Pos_qual=Qual_dict.get(str(i))
-            validate=0
-            rand_qual=0
-            while validate==0:
-                rand_qual=np.random.random_integers(low=0, high=len(Pos_qual)-1)
-                line_select=Pos_qual[rand_qual]
-                if Sequence[i]=='A':
-                    if line_select.substitute[4]!=0:
-                       validate=1
-                elif Sequence[i]=='T':
-                    if line_select.substitute[19]!=0:
-                       validate=1
-                elif Sequence[i]=='C':
-                    if line_select.substitute[9]!=0:
-                       validate=1
-                elif Sequence[i]=='G':
-                    if  line_select.substitute[14]!=0:
-                        validate=1
-                elif Sequence[i]=='N':
-                    validate=1
-            Sim_fastq.seq="".join(Listseq)
-            Sim_fastq.qual= Sim_fastq.qual+chr(Pos_qual[rand_qual].phred+33)
-    return Sim_fastq
-def SIMSR(MolSet,Par,eva_num_reads):
+    return Qual_dict,Prob_dict,Substitute_dict
+def SIMSR(MolSet,Par,seq):
     f_reads = open('read-RA_si-CCTGGAGA_lane-001-chunk-001.fastq', "w")
     f_sample = open('read-I1_si-CCTGGAGA_lane-001-chunk-001.fastq', "w")
-    SeqQual_dict=Input_SeqQual(Par)
-    BarcodeQual_dict=Input_BarcodeQual(Par)
-    Seq_qual=np.zeros((int(eva_num_reads*2.2),Par.SR))
-    Barcode_qual=np.zeros((int(eva_num_reads*1.1),16))
-    for m in range(16):
-        Barcode_coll_phred=BarcodeQual_dict.get(str(m))
-        Barcode_coll_pos_qual=[]
-        for n in range(len(Barcode_coll_phred)):
-            Barcode_coll_pos_qual.append(Barcode_coll_phred[n].phred)
-        Barcode_qual[:,m]=np.random.choice(np.asarray(Barcode_coll_pos_qual),size=(int(eva_num_reads*1.1)))
-    for m in range(Par.SR):
-        Seq_coll_phred=SeqQual_dict.get(str(m))
-        Seq_coll_pos_qual=[]
-        for n in range(len(Seq_coll_phred)):
-            Seq_coll_pos_qual.append(Seq_coll_phred[n].phred)
-        Seq_qual[:,m]=np.random.choice(np.asarray(Seq_coll_pos_qual),size=(int(eva_num_reads*2.2)))
+    [SeqQual_dict,SeqProb_dict,SeqSubstitute_dict]=Input_SeqQual(Par)
+    [BarcodeQual_dict,BarcodeProb_dict]=Input_BarcodeQual(Par)
+    #eva_num_reads=[]
+    #for i in range(len(MolSet)):
+    #    eva_num_reads.append(int(int(MolSet[i].length/(Par.SR*2))*Par.CR))
+    #Seq_qual=np.zeros((sum(eva_num_reads)*2,Par.SR),dtype=int)
+    #Barcode_qual=np.zeros((sum(eva_num_reads),16),dtype=int)
+    #for m in range(16):
+    #   Barcode_coll_phred=BarcodeQual_dict[str(m)]
+    #   Barcode_coll_pos_qual=[]
+    #   Barcode_qual[:,m]=np.random.choice(list(Barcode_coll_phred.keys()),size=(sum(eva_num_reads)))
+    #for m in range(Par.SR):
+    #   Seq_coll_phred=SeqQual_dict[str(m)]
+    #   Seq_coll_pos_qual=[]
+    #   Seq_qual[:,m]=np.random.choice(list(Seq_coll_phred.keys()),size=(sum(eva_num_reads)*2))
     last_reads=0
     for i in range(len(MolSet)):
         print('Finish  '+str(i+1)+'/'+str(len(MolSet)),end="\r")
         Seq_rand_qual=[]
         Barcode_rand_qual=[]
         num_reads=int(int(MolSet[i].length/(Par.SR*2))*Par.CR)
-        All_reverse=reverseq(MolSet[i].seq)
+        if num_reads==0:
+            continue
+        All_forward=seq[MolSet[i].start:MolSet[i].end].upper()
+        All_reverse=reverseq(All_forward)
         insert_size=np.random.normal(loc=Par.Mu_IS, scale=Par.Std_IS,size=num_reads)
         Totalreads=[]
         new_reads=last_reads+num_reads
-        Barcode_new_qual=Barcode_qual[last_reads:new_reads,:]
-        Seq_new_qual=Seq_qual[last_reads:new_reads,:]
-      #  Seq_qual=np.zeros((num_reads*2,Par.SR))
-      #  Barcode_qual=np.zeros((num_reads,Par.SR))
-      #  print('X')
-      #  for m in range(16):
-      #      Barcode_coll_phred=BarcodeQual_dict.get(str(m))
-      #      Barcode_coll_pos_qual=[]
-      #      for n in range(len(Barcode_coll_phred)):
-      #         Barcode_coll_pos_qual.append(Barcode_coll_phred[n].phred)
-      #      Barcode_qual[:,m]=np.random.choice(np.asarray(Barcode_coll_pos_qual),size=(num_reads))
-      #  print('Y')
-      #  for m in range(Par.SR):
-      #      Seq_coll_phred=SeqQual_dict.get(str(m))
-      #      Seq_coll_pos_qual=[]
-      #      for n in range(len(Seq_coll_phred)):
-      #         Seq_coll_pos_qual.append(Seq_coll_phred[n].phred)
-      #      Seq_qual[:,m]=np.random.choice(np.asarray(Seq_coll_pos_qual),size=(num_reads*2))
-      #  print('Z')
-        pool = multiprocessing.Pool(10)
-        PEfix=partial(pairend,Par,insert_size,MolSet[i],Barcode_new_qual,Seq_new_qual,All_reverse)
-        Totalreads=pool.map(PEfix, range(num_reads))
-        pool.close()
-        pool.join()
-    #    for j in range(num_reads):
-    #        PE_read=pairend(Totalreads,Par,insert_size,MolSet[i],Barcode_new_qual,Seq_new_qual,All_reverse,j)
-        last_reads=last_reads+num_reads
-        print(len(Totalreads))
+       # Barcode_new_qual=Barcode_qual[last_reads:new_reads,:]
+       # Seq_new_qual=Seq_qual[last_reads:new_reads,:]
+        Seq_new_qual=np.zeros((num_reads*2,Par.SR),dtype=int)
+        Barcode_new_qual=np.zeros((num_reads,16),dtype=int)
+        for m in range(16):
+            Barcode_coll_phred=BarcodeQual_dict[str(m)]
+            Barcode_coll_prob=BarcodeProb_dict[str(m)]
+            Barcode_new_qual[:,m]=np.random.choice(Barcode_coll_phred,p=Barcode_coll_prob,size=(num_reads))
+        for m in range(Par.SR):
+            Seq_coll_phred=SeqQual_dict[str(m)]
+            Seq_coll_prob=SeqProb_dict[str(m)]
+            Seq_new_qual[:,m]=np.random.choice(Seq_coll_phred,p=Seq_coll_prob,size=(num_reads*2))
+       # pool = multiprocessing.Pool(5)
+       # for j in range(num_reads):
+       #     pool.apply_async(pairend,(Par,insert_size,MolSet[i],Barcode_new_qual,Seq_new_qual,All_reverse,j,BarcodeQual_dict,SeqQual_dict,),callback=Totalreads.append)
+       # pool.close()
+       # pool.join()
+        for j in range(num_reads):
+            PE_read=pairend(Par,insert_size,MolSet[i],Barcode_new_qual,Seq_new_qual,All_forward,All_reverse,j,SeqSubstitute_dict)
+        Totalreads.append(PE_read)
+        del Seq_new_qual
+        del Barcode_new_qual
         for j in range(len(Totalreads)):
             read1seq=Totalreads[j].seq1
             read1qual=Totalreads[j].qual1
@@ -573,15 +490,14 @@ def SIMSR(MolSet,Par,eva_num_reads):
     os.system('gzip -f read-RA_si-CCTGGAGA_lane-001-chunk-001.fastq')
     os.system('gzip -f read-I1_si-CCTGGAGA_lane-001-chunk-001.fastq')
     return None
-
-def pairend(Par,insert_size,MolSetX,Barcode_rand_qual,Seq_rand_qual,All_reverse,index):
+def pairend(Par,insert_size,MolSetX,Barcode_rand_qual,Seq_rand_qual,All_forward,All_reverse,index,SeqSubstitute_dict):
 #def pairend(BarcodeQual_dict,SeqQual_dict,Totalreads,Par,insert_size,MolSetX,All_reverse,index):
     is_read=int(np.absolute(insert_size[index]))
     start_for=int(np.random.uniform(low=1,high=MolSetX.length-Par.SR-1))
     if start_for+is_read+1>MolSetX.length:
        is_read=MolSetX.length-start_for-1
     end_for=start_for+int(is_read)
-    forward_seq=MolSetX.seq[start_for:end_for]
+    forward_seq=All_forward[start_for:end_for]
     start_rev=MolSetX.length-end_for
     end_rev=start_rev+int(is_read)
     reverse_seq=All_reverse[start_rev:end_rev]
@@ -599,19 +515,48 @@ def pairend(Par,insert_size,MolSetX,Barcode_rand_qual,Seq_rand_qual,All_reverse,
        #read2seq=Sim_seq2.seq
        #read1qual=Sim_barcode.qual+'KKKKKKK'+Sim_seq1.qual
        #read2qual=Sim_seq2.qual
-       #if Par.Seq_error=='Y':
-       read1seq=MolSetX.barcode+'NNNNNNN'+read1
-       read2seq=read2
-       read1qual=''.join(str(x) for x in Barcode_rand_qual[index,:])+'KKKKKKK'+''.join(str(x) for x in Seq_rand_qual[index,23:Par.SR])
-       read2qual=''.join(str(x) for x in Seq_rand_qual[index,:])
+       if Par.Seq_error=='N':
+          read1seq=MolSetX.barcode+'NNNNNNN'+read1
+          read2seq=read2
+       if Par.Seq_error=='Y':
+          readerror=np.random.choice([0,1],p=[1-Par.Error_rate,Par.Error_rate],size=(Par.SR*2))
+          error1=readerror[0:Par.SR].nonzero()
+          error2=readerror[Par.SR:Par.SR*2].nonzero()
+          read1new=list(read1)
+          read2new=list(read2)
+          for i in range(len(error1[0])):
+               #print((np.asarray(SeqSubstitute_dict[(str(i),Seq_rand_qual[index,i])])))
+               if read1[i]=='A':
+                  rand_nuc=np.random.choice(['C','G','T','N'],1,p=np.asarray(SeqSubstitute_dict[(str(i),Seq_rand_qual[index,i])][0:4]))
+               elif read1[i]=='C':
+                  rand_nuc=np.random.choice(['A','G','T','N'],1,p=np.asarray(SeqSubstitute_dict[(str(i),Seq_rand_qual[index,i])][4:8]))
+               elif read1[i]=='G':
+                  rand_nuc=np.random.choice(['A','C','T','N'],1,p=np.asarray(SeqSubstitute_dict[(str(i),Seq_rand_qual[index,i])][8:12]))
+               elif read1[i]=='T':
+                  rand_nuc=np.random.choice(['A','C','G','N'],1,p=np.asarray(SeqSubstitute_dict[(str(i),Seq_rand_qual[index,i])][12:16]))
+               read1new[i]=rand_nuc[0]
+
+          for i in range(len(error2[0])):
+               if read2[i]=='A':
+                  rand_nuc=np.random.choice(['C','G','T','N'],1,p=np.asarray(SeqSubstitute_dict[(str(i),Seq_rand_qual[index,i])][0:4]))
+               elif read2[i]=='C':
+                  rand_nuc=np.random.choice(['A','G','T','N'],1,p=np.asarray(SeqSubstitute_dict[(str(i),Seq_rand_qual[index,i])][4:8]))
+               elif read2[i]=='G':
+                  rand_nuc=np.random.choice(['A','C','T','N'],1,p=np.asarray(SeqSubstitute_dict[(str(i),Seq_rand_qual[index,i])][8:12]))
+               elif read2[i]=='T':
+                  rand_nuc=np.random.choice(['A','C','G','N'],1,p=np.asarray(SeqSubstitute_dict[(str(i),Seq_rand_qual[index,i])][12:16]))
+               read2new[i]=rand_nuc[0]
+          read1seq=MolSetX.barcode+'NNNNNNN'+''.join(read1new)
+          read2seq=''.join(read2new)
+
+       read1qual=''.join(map(chr,Barcode_rand_qual[index,:]))+'KKKKKKK'+''.join(map(chr,Seq_rand_qual[index,23:Par.SR]))
+       read2qual=''.join(map(chr,Seq_rand_qual[index,:]))
     else:
        read1seq=MolSetX.barcode+'NNNNNNN'+read1
        read2seq=read2
        read1qual='K'*Par.SR
        read2qual='K'*Par.SR
     return Short_reads_PE(read1seq,read1qual,start_for,end_for,read2seq,read2qual,start_rev,end_rev)
-
-
 
 def main():
     os.system('rm -rf '+sys.argv[1]+'/lib*')
@@ -629,4 +574,7 @@ def main():
               diploid(Par,deter,i+1)
     return None
 if __name__=="__main__":
+#    start=time.clock()
     main()
+ #   end=time.clock
+ #   print(str(end-start))
