@@ -565,6 +565,7 @@ def main():
     pool = multiprocessing.Pool(5)
     os.system('rm -rf '+sys.argv[1]+'/lib*')
     list=os.listdir(sys.argv[1])
+    list=list.sort()
     Par=parameter()
     hap=1
     for i in range(len(list)):
