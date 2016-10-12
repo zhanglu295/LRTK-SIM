@@ -347,7 +347,7 @@ def haploid(Par,deter,lib,hap):
     Mol_process.append(len(MolSet)-1)
     print(len(Mol_process))
     for m in range(len(Mol_process)-1):
-    #SIMSR(MolSet[Mol_process[m]:Mol_process[m+1]],Par,seq,lib,hap,int(m/2+1))
+        #SIMSR(MolSet[Mol_process[m]:Mol_process[m+1]],Par,  seq,lib,hap,m)
         pool.apply_async(SIMSR,(MolSet[Mol_process[m]:Mol_process[m+1]],Par,seq,lib,hap,m))
     pool.close()
     pool.join()
@@ -516,7 +516,7 @@ def SIMSR(MolSet,Par,seq,lib,hap,jobid):
     #os.system('gzip -f read-RA_si-CCTGGAGA_lib-00'+str(lib)+'-hap-00'+hap+'.fastq')
     #os.system('gzip -f read-I1_si-CCTGGAGA_lib-00'+str(lib)+'-hap-00'+hap+'.fastq')
     return None
-def pairend(Par,insert_size,MolSetX,Barcode_rand_qual,Seq_rand_qual1,,Seq_rand_qual2,All_forward,All_reverse,index,SeqSubstitute_dict):
+def pairend(Par,insert_size,MolSetX,Barcode_rand_qual,Seq_rand_qual1,Seq_rand_qual2,All_forward,All_reverse,index,SeqSubstitute_dict):
     is_read=int(np.absolute(insert_size[index]))
     start_for=int(np.random.uniform(low=1,high=MolSetX.length-Par.SR-1))
     if start_for+is_read+1>MolSetX.length:
@@ -544,9 +544,10 @@ def pairend(Par,insert_size,MolSetX,Barcode_rand_qual,Seq_rand_qual1,,Seq_rand_q
           read1seq=MolSetX.barcode+'NNNNNNN'+read1
           read2seq=read2
        if Par.Seq_error=='Y':
-          readerror=np.random.choice([0,1],p=[1-Par.Error_rate,Par.Error_rate],size=(Par.SR*2))
-          error1=readerror[0:Par.SR].nonzero()
-          error2=readerror[Par.SR:Par.SR*2].nonzero()
+          readerror1=np.random.choice([0,1],p=[1-Par.Error_rate,Par.Error_rate],size=(Par.SR-23))
+          readerror2=np.random.choice([0,1],p=[1-Par.Error_rate,Par.          Error_rate],size=(Par.SR))
+          error1=readerror1[0:Par.SR].nonzero()
+          error2=readerror2[0:Par.SR].nonzero()
           read1new=list(read1)
           read2new=list(read2)
           for i in error1[0]:
