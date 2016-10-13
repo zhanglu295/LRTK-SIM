@@ -461,7 +461,7 @@ def SIMSR(MolSet,Par,seq,lib,hap,jobid):
     #   Seq_qual[:,m]=np.random.choice(list(Seq_coll_phred.keys()),size=(sum(eva_num_reads)*2))
     last_reads=0
     for i in range(len(MolSet)):
-        print('Finish  '+str(i+1)+'/'+str(len(MolSet)),end="\r")
+        #print('Finish  '+str(i+1)+'/'+str(len(MolSet)),end="\r")
         Seq_rand_qual=[]
         Barcode_rand_qual=[]
         num_reads=int(int(MolSet[i].length/(Par.SR*2))*Par.CR)
