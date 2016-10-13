@@ -337,6 +337,7 @@ def haploid(Par,deter,lib,hap):
     print('assign molecule to droplet finished (haplotype '+hap+' in library '+lib+')')
     MolSet=selectbarcode(Par.barcodepool,assign_drop,MolSet,droplet_container)
     print('assign barcode to molecule finished (haplotype '+hap+' in library '+lib+')')
+    print('begin to simulate short reads, please wait...')
     pool = multiprocessing.Pool(int(Par.processor))
     Mol_process=[]
     maxprocessor=int(len(MolSet)/int(Par.processor))
