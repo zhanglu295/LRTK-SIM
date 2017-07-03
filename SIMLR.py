@@ -11,13 +11,12 @@ import plotly.plotly as py
 import pdb
 import time
 from collections import defaultdict
-#pdb.set_trace()
 #Parameter defination
-large_droplet=4000000
-large_template=1000000
+large_droplet=40000000
+large_template=1000000000
 class Molecule(object):
-    def __init__(self,length,start,end):
-        #self.seq=sequence.upper()
+    def __init__(self,length,start,end,index):
+        self.seqidx=index
         self.length=length
         self.index_droplet=0
         self.barcode='Null'
@@ -51,10 +50,9 @@ class parameter(object):
         self.SR=0
         self.Mu_IS=0
         self.Std_IS=0
-        self.Fasta='N'
+        self.Fastahap1='N'
+        self.Fastahap2='N'
         self.barcodepool='N'
-        self.in_var1='N'
-        self.in_var2='N'
         self.hap=1
         self.Seq_error='N'
         self.Seq_qual='N'
@@ -69,8 +67,10 @@ def input_parameter(argv,parameter_struc):
     for line in f:
         Par=line.split('=')
         if len(Par)==2:
-           if Par[0]=='Path_Fasta':
-              parameter_struc.Fasta=Par[1].strip('\n')
+           if Par[0]=='Path_Fastahap1':
+              parameter_struc.Fastahap1=Par[1].strip('\n')
+           elif Par[0]=='Path_Fastahap2':
+              parameter_struc.Fastahap2=Par[1].strip('\n')
            elif Par[0]=='Fast_mode':
               parameter_struc.Fast_mode=Par[1].strip('\n')
            elif Par[0]=='processors':
@@ -99,19 +99,31 @@ def input_parameter(argv,parameter_struc):
               parameter_struc.SR=int(Par[1].strip('\n'))
            elif Par[0]=='Path_barcodepool':
               parameter_struc.barcodepool=Par[1].strip('\n')
-           elif Par[0]=='Path_VCF1':
-              parameter_struc.in_var1=Par[1].strip('\n')
-           elif Par[0]=='Path_VCF2':
-              parameter_struc.in_var2=Par[1].strip('\n')
            elif Par[0]=='Hap':
               parameter_struc.hap=int(Par[1].strip('\n'))
     f.close()
-    if os.path.isfile(parameter_struc.Fasta)==False:
-       deter=0
-       print('template fasta file (Fasta) does not exist')
-    if parameter_struc.Fasta=='N':
-       deter=0
-       print('Missing template fasta file (Fasta)')
+   
+
+    if parameter_struc.hap==1:
+       if os.path.isfile(parameter_struc.Fastahap1)==False:
+          deter=0
+          print('template fasta file (Fasta) does not exist')
+       if parameter_struc.Fastahap1=='N':
+          deter=0
+          print('Missing template fasta file (Fasta)')
+    if parameter_struc.hap==2:
+       if os.path.isfile(parameter_struc.Fastahap1)==False:
+          deter=0
+          print('template haplotype1 fasta file (Fasta) does not exist')
+       if os.path.isfile(parameter_struc.Fastahap2)==False:
+          deter=0
+          print('template haplotype2 fasta file (Fasta) does not exist')
+       if parameter_struc.Fastahap1=='N':
+          deter=0
+          print('Missing template haplotype1 fasta file (Fasta)')
+       if parameter_struc.Fastahap2=='N':
+          deter=0
+          print('Missing template haplotype2 fasta file (Fasta)')
     if parameter_struc.CF==0:
        deter=0
        print('Missing coverage for long fragment (CF)')
@@ -139,67 +151,57 @@ def input_parameter(argv,parameter_struc):
     if os.path.isfile(parameter_struc.barcodepool)==False:
        deter=0
        print('barcode list does not exist')
-    if parameter_struc.in_var1!='N':
-       if os.path.isfile(parameter_struc.in_var1)==False:
-          deter=0
-          print('VCF1 does not exist')
-    if parameter_struc.in_var2!='N':
-       if os.path.isfile(parameter_struc.in_var2)==False:
-          deter=0
-          print('VCF2 does not exist')
+    if parameter_struc.hap==2:
+       parameter_struc.CF=parameter_struc.CF/2
     return deter
 #read template sequence
 def input_seq(in_path):
+    reflist=[]
     sequence=''
     f=open(in_path,"r")
-    line_index=0
+    index=0
     for line in f:
-        if line_index>0:
+        if line[0]=='>':
+           if index==0:
+              index+=1
+           else:
+              reflist.append(sequence)
+              sequence=''
+        else:
            sequence+=line.strip('\n')
-        line_index=line_index+1
+    reflist.append(sequence)
     f.close()
-    return sequence
+    return reflist
 
 #sapmpling long fragments from empirical distribution
-def randomlong(Par,seq):
+def randomlong(Par,reflist):
     global N_frag
     N_frag=0
-    #calculate required number of molecules
-    lensingle=len(seq)
-    N_frag=int(lensingle*Par.CF/(Par.Mu_F*1000))
-    #randome simulate molecules
     MolSet=[]
     For_hist=[]
-    for i in range(N_frag):
-        start=int(np.random.uniform(low=0,high=lensingle))
-        length=int(np.random.exponential(scale=Par.Mu_F*1000))
-        end=start+length-1
-        if length==0:
-           continue
-        if end>lensingle:
-           Molseq=seq[start:lensingle]
-           lengthnew=lensingle-start
-           nPos=Molseq.count('N')
-           if nPos>0:
-              continue
-           NewMol=Molecule(lengthnew,start,lensingle)
-           MolSet.append(NewMol)
-        else:
-           Molseq=seq[start:end]
-           nPos=Molseq.count('N')
-           if nPos>0:
-              continue
-           NewMol=Molecule(length-1,start,end)
-           MolSet.append(NewMol)
-        For_hist.append(length/1000)
+    index=0
+    for seq in reflist:
+        #calculate required number of molecules
+        lensingle=len(seq)
+        N_frag=int(lensingle*Par.CF/(Par.Mu_F*1000))
+        #randome simulate molecules
+        for i in range(N_frag):
+            start=int(np.random.uniform(low=0,high=lensingle))
+            length=int(np.random.exponential(scale=Par.Mu_F*1000))
+            end=start+length-1
+            if length==0:
+               continue
+            if end>lensingle:
+               Molseq=seq[start:lensingle]
+               lengthnew=lensingle-start
+               NewMol=Molecule(lengthnew,start,lensingle,index)
+               MolSet.append(NewMol)
+            else:
+               Molseq=seq[start:end]
+               NewMol=Molecule(length-1,start,end,index)
+               MolSet.append(NewMol)
+        index+=1
     N_frag=len(MolSet)
-    #plt.hist(For_hist)
-    #plt.xlabel('Molecule length')
-    #plt.ylabel('Number of molecules')
-    #plt.title('Histogram of molecule length (total '+str(len(For_hist))+' molecules)')
-    #plt.show()
-    #plt.savefig('Len_Molecule_hist.png')
-    #plt.close()
     return MolSet
 #assign long fragments to droplet
 def deternumdroplet(N_frag,N_FP):
@@ -216,13 +218,6 @@ def deternumdroplet(N_frag,N_FP):
             assign_drop.append(last)
             Figure_len_molecule.append(last)
             break
-    #plt.hist(assign_drop)
-    #plt.xlabel('Number of molecules in droplets')
-    #plt.ylabel('Number of molecules')
-    #plt.title('Histogram of the number of molecules in droplets (total '+str(len(assign_drop))+' droplet)')
-    #plt.show()
-    #plt.savefig('Num_Molecule_hist.png')
-    #plt.close()
     return assign_drop
 #assign barcode to each fragment
 def selectbarcode(pool,assign_drop,MolSet,droplet_container):
@@ -231,6 +226,7 @@ def selectbarcode(pool,assign_drop,MolSet,droplet_container):
     #include barcode in the list
     barcode=[]
     N_droplet=len(assign_drop)
+    
     t=1
     f=open(pool,"r")
     for line in f:
@@ -254,91 +250,37 @@ def selectbarcode(pool,assign_drop,MolSet,droplet_container):
             totalseqlen=totalseqlen+MolSet[index].length
         droplet_container.append(temp)
     return MolSet
-#def diploid(Par,deter,lib):
-#    global Figure_len_molecule
-#    global Figure_num_molecule
-#    Figure_len_molecule=[]
-#    Figure_num_molecule=[]
-#    os.system('mkdir '+sys.argv[1]+'/lib'+str(lib)+'/hap1')
-#    os.system('mkdir '+sys.argv[1]+'/lib'+str(lib)+'/hap2')
-#    if Par.in_var1=='N' or Par.in_var2=='N':
-#       print('missing variants files, must provide both  VCF1 and VCF2')
-#    else:#insert variants from vcf
-#       os.system('tabix -f -p vcf '+Par.in_var1)
-#       os.system('tabix -f -p vcf '+Par.in_var2)
-#       os.system('cat '+Par.Fasta+' | vcf-consensus '+Par.in_var1+' > new1.fa')
-#       os.system('cat '+Par.Fasta+' | vcf-consensus '+Par.in_var2+' > new2.fa')
-#       for j in range(2):
-#           droplet_container=[]
-#           Par.Fasta='new'+str(j+1)+'.fa'
-#           seq=input_seq(Par.Fasta)
-#           #recode cut position of long fragment
-#           print('read template finished (hap'+str(j+1)+')')
-#           MolSet=randomlong(Par,seq)
- #         print('molecule sampling finished (hap'+str(j+1)+')') #
- #calculate number of droplet
-#           assign_drop=deternumdroplet(N_frag,Par.N_FP)
-#           print('assign molecule to droplet finished (hap'+str(j+1)+')')
-           #print(assign_drop)
-#           MolSet=selectbarcode(Par.barcodepool,assign_drop,MolSet,droplet_container)
-#           print('assign barcodes to molecules finished (hap'+str(j+1)+')')
-#           SIMSR(MolSet,Par,seq,lib)
-#           os.system('mv read-RA_si-CCTGGAGA_lane-001-chunk-001.fastq.gz '+sys.argv[1]+'/lib'+str(lib)+'/hap'+str(j+1))
-#           os.system('mv read-I1_si-CCTGGAGA_lane-001-chunk-001.fastq.gz '+sys.argv[1]+'/lib'+str(lib)+'/hap'+str(j+1))
-#           os.system('mv Num_Molecule_hist.png '+sys.argv[1]+'/lib'+str(lib)+'/hap'+str(j+1))
-#           os.system('mv Len_Molecule_hist.png '+sys.argv[1]+'/lib'+str(lib)+'/hap'+str(j+1))
-#       if Par.in_var1!='N':
-#          os.system('rm new1.fa')
-#       if Par.in_var2!='N':
-#          os.system('rm new2.fa')
-#       os.system('zcat '+sys.argv[1]+'/lib'+str(lib)+'/hap1/read-RA_si-CCTGGAGA_lane-001-chunk-001.fastq.gz '+sys.argv[1]+'/lib'+str(lib)+'/hap2/read-RA_si-CCTGGAGA_lane-001-chunk-001.fastq.gz>'+sys.argv[1]+'/lib'+str(lib)+'/read-RA_si-CCTGGAGA_lane-001-chunk-001.fastq.gz')
-#       os.system('zcat '+sys.argv[1]+'/lib'+str(lib)+'/hap1/read-I1_si-CCTGGAGA_lane-001-chunk-001.fastq.gz '+sys.argv[1]+'/lib'+str(lib)+'/hap2/read-I1_si-CCTGGAGA_lane-001-chunk-001.fastq.gz>'+sys.argv[1]+'/lib'+str(lib)+'/read-I1_si-CCTGGAGA_lane-001-chunk-001.fastq.gz')
-#       plt.hist(Figure_len_molecule)
-#       plt.xlabel('Molecule length')
-#       plt.ylabel('Number of molecules')
-#       plt.title('Histogram of molecule length (total '+str(len(Figure_len_molecule))+' molecules)')
-#       plt.show()
-#       plt.savefig('Len_Molecule_hist_'++'.png')
-#       plt.close()
-#       plt.hist(Figure_num_molecule)
-#       plt.xlabel('Number of molecules in droplets')
-#       plt.ylabel('Number of molecules')
-#       plt.title('Histogram of the number of molecules in droplets (total '+str(len(Figure_num_molecule))+' droplet)')
-#       plt.show()
-#       plt.savefig('Num_Molecule_hist.png')
-#       plt.close()
-#       os.system('mv Len_Molecule_hist.png '+sys.argv[1]+'/lib'+str(lib))
-#       os.system('mv Num_Molecule_hist.png '+sys.argv[1]+'/lib'+str(lib))
-#    print('library'+str(lib)+' simulation completed!')
-#    return None
-def haploid(Par,deter,lib,hap):
+
+def child_initialize(_MolSet,_reflist):
+     global MolSet
+     global reflist
+     MolSet = _MolSet
+     reflist=_reflist
+def haploid(Par,lib):
     global Figure_len_molecule
     global Figure_num_molecule
+    global MolSet    
+    global reflist
     Figure_len_molecule=[]
     Figure_num_molecule=[]
     droplet_container=[]
-    if hap=='1':
-       if Par.in_var1!='N':
-          os.system('tabix -f -p vcf '+Par.in_var1)
-          os.system('cat '+Par.Fasta+' | vcf-consensus '+Par.in_var1+' > new_hap'+str(hap)+'_lib'+lib+'_.fa')
-          Par.Fasta='new_hap'+str(hap)+'_lib'+lib+'.fa'
-    if hap=='2':
-       if Par.in_var1!='N':
-          os.system('tabix -f -p vcf '+Par.in_var2)
-          os.system('cat '+Par.Fasta+' | vcf-consensus '+Par.in_var2+' > new_hap'+str(hap)+'_lib'+lib+'_.fa')
-          Par.Fasta='new_hap'+hap+'_lib'+lib+'.fa'
-    seq=input_seq(Par.Fasta)
+    if Par.hap==1:
+       reflist=input_seq(Par.Fastahap1)
+    if Par.hap==2:
+       reflist=input_seq(Par.Fastahap1)
+       reflist2=input_seq(Par.Fastahap2)
+       reflist.extend(reflist2)
     #recode cut position of long fragment
-    print('read template finished (haplotype '+hap+' in library '+lib+')')
-    MolSet=randomlong(Par,seq)
-    print('molecule sampling finished (haplotype '+hap+' in library '+lib+')')
+    print('read template finished (library '+lib+')')
+    MolSet=randomlong(Par,reflist)
+    print('generate molecule finished (library '+lib+')')
     #calculate number of droplet
     assign_drop=deternumdroplet(N_frag,Par.N_FP)
-    print('assign molecule to droplet finished (haplotype '+hap+' in library '+lib+')')
+    print('assign molecule to droplet finished (library '+lib+')')
     MolSet=selectbarcode(Par.barcodepool,assign_drop,MolSet,droplet_container)
-    print('assign barcode to molecule finished (haplotype '+hap+' in library '+lib+')')
+    print('assign barcode to molecule finished (library '+lib+')')
     print('begin to simulate short reads, please wait...')
-    pool = multiprocessing.Pool(int(Par.processor))
+    pool = multiprocessing.Pool(int(Par.processor),initializer= child_initialize,initargs = (MolSet,reflist,))
     Mol_process=[]
     maxprocessor=int(len(MolSet)/int(Par.processor))
     t=0
@@ -346,44 +288,39 @@ def haploid(Par,deter,lib,hap):
         Mol_process.append(t)
         t=t+maxprocessor
     Mol_process.append(len(MolSet)-1)
-    print(len(Mol_process))
     for m in range(len(Mol_process)-1):
-        #SIMSR(MolSet[Mol_process[m]:Mol_process[m+1]],Par,  seq,lib,hap,m)
-        pool.apply_async(SIMSR,(MolSet[Mol_process[m]:Mol_process[m+1]],Par,seq,lib,hap,m))
+        #SIMSR(Mol_process[m],Mol_process[m+1],Par,lib,m)
+        pool.apply_async(SIMSR,(Mol_process[m],Mol_process[m+1],Par,lib,m,))
     pool.close()
     pool.join()
-    os.system('touch read-RA_si-CCTGGAGA_lib-00'+lib+'_hap-00'+hap+'.fastq')
-    os.system('touch read-I1_si-CCTGGAGA_lib-00'+lib+'_hap-00'+hap+'.fastq')
+    os.system('touch read-RA_si-CCTGGAGA_lib-00'+lib+'.fastq')
+    os.system('touch read-I1_si-CCTGGAGA_lib-00'+lib+'.fastq')
     for m in range(len(Mol_process)-1):
-        os.system('cat read-RA_si-CCTGGAGA_lib-00'+lib+'_hap-00'+hap+'_id-'+str(m)+'.fastq >> read-RA_si-CCTGGAGA_lib-00'+lib+'_hap-00'+hap+'.fastq')
-        os.system('cat read-I1_si-CCTGGAGA_lib-00'+lib+'_hap-00'+hap+'_id-'+str(m)+'.fastq >> read-I1_si-CCTGGAGA_lib-00'+lib+'_hap-00'+hap+'.fastq')
-        os.system('rm read-RA_si-CCTGGAGA_lib-00'+lib+'_hap-00'+hap+'_id-'+str(m)+'.fastq')
-        os.system('rm read-I1_si-CCTGGAGA_lib-00'+lib+'_hap-00'+hap+'_id-'+str(m)+'.fastq')
-    os.system('gzip read-RA_si-CCTGGAGA_lib-00'+lib+'_hap-00'+hap+'.fastq')
-    os.system('gzip read-I1_si-CCTGGAGA_lib-00'+lib+'_hap-00'+hap+'.fastq')
-    os.system('mv read-RA_si-CCTGGAGA_lib-00'+lib+'_hap-00'+hap+'.fastq.gz '+sys.argv[1]+'/lib'+lib)
-    os.system('mv read-I1_si-CCTGGAGA_lib-00'+lib+'_hap-00'+hap+'.fastq.gz '+sys.argv[1]+'/lib'+lib)
+        os.system('cat read-RA_si-CCTGGAGA_lib-00'+lib+'_id-'+str(m)+'.fastq >> read-RA_si-CCTGGAGA_lib-00'+lib+'.fastq')
+        os.system('cat read-I1_si-CCTGGAGA_lib-00'+lib+'_id-'+str(m)+'.fastq >> read-I1_si-CCTGGAGA_lib-00'+lib+'.fastq')
+        os.system('rm read-RA_si-CCTGGAGA_lib-00'+lib+'_id-'+str(m)+'.fastq')
+        os.system('rm read-I1_si-CCTGGAGA_lib-00'+lib+'_id-'+str(m)+'.fastq')
+    os.system('gzip read-RA_si-CCTGGAGA_lib-00'+lib+'.fastq')
+    os.system('gzip read-I1_si-CCTGGAGA_lib-00'+lib+'.fastq')
+    os.system('mv read-RA_si-CCTGGAGA_lib-00'+lib+'.fastq.gz '+sys.argv[1]+'/lib'+lib)
+    os.system('mv read-I1_si-CCTGGAGA_lib-00'+lib+'.fastq.gz '+sys.argv[1]+'/lib'+lib)
     plt.hist(Figure_len_molecule)
     plt.xlabel('Molecule length')
     plt.ylabel('Number of molecules')
     plt.title('Histogram of molecule length (total '+str(len(Figure_len_molecule))+' molecules)')
     plt.show()
-    plt.savefig('Len_Molecule_hist_lib'+lib+'_hap'+hap+'.png')
+    plt.savefig('Len_Molecule_hist_lib'+lib+'.png')
     plt.close()
     plt.hist(Figure_num_molecule)
     plt.xlabel('Number of molecules in droplets')
     plt.ylabel('Number of molecules')
     plt.title('Histogram of the number of molecules in droplets (total '+str(len(Figure_num_molecule))+' droplet)')
     plt.show()
-    plt.savefig('Num_Molecule_hist_lib'+lib+'_hap'+hap+'.png')
+    plt.savefig('Num_Molecule_hist_lib'+lib+'.png')
     plt.close()
-    os.system('mv Num_Molecule_hist_lib'+lib+'_hap'+hap+'.png '+sys.argv[1]+'/lib'+lib)
-    os.system('mv Len_Molecule_hist_lib'+lib+'_hap'+hap+'.png '+sys.argv[1]+'/lib'+lib)
-    if hap==1 and Par.in_var1!='N':
-       os.system('rm new1.fa')
-    if hap==2 and Par.in_var2!='N':
-       os.system('rm new2.fa')
-    print('Haplotype '+hap+' in library '+lib+' simulation completed!')
+    os.system('mv Num_Molecule_hist_lib'+lib+'.png '+sys.argv[1]+'/lib'+lib)
+    os.system('mv Len_Molecule_hist_lib'+lib+'.png '+sys.argv[1]+'/lib'+lib)
+    print('Library '+lib+' simulation completed!')
     return None
 def reverseq(seq):
     complementary=''
@@ -397,6 +334,8 @@ def reverseq(seq):
            complementary+='G'
         elif seq[i]=='G':
            complementary+='C'
+        elif seq[i]=='N':
+           complementary+='N'
     rev_complementary=complementary[::-1]
     return rev_complementary
 
@@ -406,22 +345,13 @@ def Input_BarcodeQual(Par):
     position=0
     Qual_dict=defaultdict(list)
     Prob_dict=defaultdict(list)
-    #pos_qual={}
     for line in f:
         if line_index>0:
            linequal=line.strip('\t,\n')
            qualarray=linequal.split('\t')
            Qual_dict[qualarray[0]].append(ord(qualarray[1]))
            Prob_dict[qualarray[0]].append(float(qualarray[2]))
-          # if position!=int(qualarray[0]):
-          #    Qual_dict[str(position)]=pos_qual
-          #    pos_qual={}
-          #    position=int(qualarray[0])
-           #for i in range(6):
-           #    change.append(int(qualarray[i+2]))
-          # pos_qual[ord(qualarray[1])]=change
         line_index=line_index+1
-    #Qual_dict[str(position)]=pos_qual
     f.close()
     return Qual_dict,Prob_dict
 def Input_SeqQual(Par):
@@ -442,33 +372,21 @@ def Input_SeqQual(Par):
         line_index=line_index+1
     f.close()
     return Qual_dict,Prob_dict,Substitute_dict
-def SIMSR(MolSet,Par,seq,lib,hap,jobid):
-    f_reads = open('read-RA_si-CCTGGAGA_lib-00'+lib+'_hap-00'+hap+'_id-'+str(jobid)+'.fastq', "w")
-    f_sample = open('read-I1_si-CCTGGAGA_lib-00'+lib+'_hap-00'+hap+'_id-'+str(jobid)+'.fastq', "w")
+def SIMSR(start,end,Par,lib,jobid):
+    MolSet_cand=MolSet[start:end]
+    f_reads = open('read-RA_si-CCTGGAGA_lib-00'+lib+'_id-'+str(jobid)+'.fastq',"w")
+    f_sample = open('read-I1_si-CCTGGAGA_lib-00'+lib+'_id-'+str(jobid)+'.fastq',"w")
     [SeqQual_dict,SeqProb_dict,SeqSubstitute_dict]=Input_SeqQual(Par)
     [BarcodeQual_dict,BarcodeProb_dict]=Input_BarcodeQual(Par)
-    #eva_num_reads=[]
-    #for i in range(len(MolSet)):
-    #    eva_num_reads.append(int(int(MolSet[i].length/(Par.SR*2))*Par.CR))
-    #Seq_qual=np.zeros((sum(eva_num_reads)*2,Par.SR),dtype=int)
-    #Barcode_qual=np.zeros((sum(eva_num_reads),16),dtype=int)
-    #for m in range(16):
-    #   Barcode_coll_phred=BarcodeQual_dict[str(m)]
-    #   Barcode_coll_pos_qual=[]
-    #   Barcode_qual[:,m]=np.random.choice(list(Barcode_coll_phred.keys()),size=(sum(eva_num_reads)))
-    #for m in range(Par.SR):
-    #   Seq_coll_phred=SeqQual_dict[str(m)]
-    #   Seq_coll_pos_qual=[]
-    #   Seq_qual[:,m]=np.random.choice(list(Seq_coll_phred.keys()),size=(sum(eva_num_reads)*2))
     last_reads=0
-    for i in range(len(MolSet)):
-        #print('Finish  '+str(i+1)+'/'+str(len(MolSet)),end="\r")
+    for i in range(len(MolSet_cand)):
+        seq=reflist[MolSet_cand[i].seqidx]
         Seq_rand_qual=[]
         Barcode_rand_qual=[]
-        num_reads=int(int(MolSet[i].length/(Par.SR*2))*Par.CR)
+        num_reads=int(int(MolSet_cand[i].length/(Par.SR*2))*Par.CR)
         if num_reads==0:
             continue
-        All_forward=seq[MolSet[i].start:MolSet[i].end].upper()
+        All_forward=seq[MolSet_cand[i].start:MolSet_cand[i].end].upper()
         All_reverse=reverseq(All_forward)
         insert_size=np.random.normal(loc=Par.Mu_IS, scale=Par.Std_IS,size=num_reads)
         Totalreads=[]
@@ -485,20 +403,18 @@ def SIMSR(MolSet,Par,seq,lib,hap,jobid):
             Seq_new_qual[:,m]=np.random.choice(Seq_coll_phred,p=Seq_coll_prob,size=(num_reads*2))
         Seq_new_qual1=Seq_new_qual[0:num_reads,:]
         Seq_new_qual2=Seq_new_qual[num_reads:2*num_reads,:]
-       # pool = multiprocessing.Pool(5)
-       # for j in range(num_reads):
-       #     pool.apply_async(pairend,(Par,insert_size,MolSet[i],Barcode_new_qual,Seq_new_qual,All_reverse,j,BarcodeQual_dict,SeqQual_dict,),callback=Totalreads.append)
-       # pool.close()
-       # pool.join()
         for j in range(num_reads):
-            PE_read=pairend(Par,insert_size,MolSet[i],Barcode_new_qual,Seq_new_qual1,Seq_new_qual2,All_forward,All_reverse,j,SeqSubstitute_dict)
+            PE_read=pairend(Par,insert_size,MolSet_cand[i],Barcode_new_qual,Seq_new_qual1,Seq_new_qual2,All_forward,All_reverse,j,SeqSubstitute_dict)
             Totalreads.append(PE_read)
         for j in range(len(Totalreads)):
             read1seq=Totalreads[j].seq1
             read1qual=Totalreads[j].qual1
             read2seq=Totalreads[j].seq2
             read2qual=Totalreads[j].qual2
-            readname='@ST-K00126:'+str(i+1)+':H5W53BBXX:'+str(MolSet[i].start)+':'+str(MolSet[i].end)+':'+str(Totalreads[j].start1)+':'+str(Totalreads[j].end1)
+            read1N=read1seq[23:Par.SR]
+            if read1N.count('N')>(Par.SR-23)*0.1 or read2seq.count('N')>Par.SR*0.1:
+               continue
+            readname='@ST-K00126:'+str(i+1)+':H5W53BBXX:'+str(MolSet_cand[i].start)+':'+str(MolSet_cand[i].end)+':'+str(Totalreads[j].start1)+':'+str(Totalreads[j].end1)
             f_reads.write(readname+' 1:N:0\n')
             f_reads.write(read1seq+'\n')
             f_reads.write('+\n')
@@ -514,8 +430,6 @@ def SIMSR(MolSet,Par,seq,lib,hap,jobid):
             f_sample.write('AAFFFKKK\n')
     f_reads.close()
     f_sample.close()
-    #os.system('gzip -f read-RA_si-CCTGGAGA_lib-00'+str(lib)+'-hap-00'+hap+'.fastq')
-    #os.system('gzip -f read-I1_si-CCTGGAGA_lib-00'+str(lib)+'-hap-00'+hap+'.fastq')
     return None
 def pairend(Par,insert_size,MolSetX,Barcode_rand_qual,Seq_rand_qual1,Seq_rand_qual2,All_forward,All_reverse,index,SeqSubstitute_dict):
     is_read=int(np.absolute(insert_size[index]))
@@ -534,19 +448,12 @@ def pairend(Par,insert_size,MolSetX,Barcode_rand_qual,Seq_rand_qual1,Seq_rand_qu
     read1qual=''
     read2qual=''
     if Par.Fast_mode=='N':
-       #Sim_seq1=SIMSeqQual(SeqQual_dict,read1,Par)
-       #Sim_seq2=SIMSeqQual(SeqQual_dict,read2,Par)
-       #Sim_barcode=SIMBarcodeQual(BarcodeQual_dict,MolSetX.barcode,Par)
-       #read1seq=MolSetX.barcode+'NNNNNNN'+Sim_seq1.seq
-       #read2seq=Sim_seq2.seq
-       #read1qual=Sim_barcode.qual+'KKKKKKK'+Sim_seq1.qual
-       #read2qual=Sim_seq2.qual
        if Par.Seq_error=='N':
           read1seq=MolSetX.barcode+'NNNNNNN'+read1
           read2seq=read2
        if Par.Seq_error=='Y':
           readerror1=np.random.choice([0,1],p=[1-Par.Error_rate,Par.Error_rate],size=(Par.SR-23))
-          readerror2=np.random.choice([0,1],p=[1-Par.Error_rate,Par.          Error_rate],size=(Par.SR))
+          readerror2=np.random.choice([0,1],p=[1-Par.Error_rate,Par.Error_rate],size=(Par.SR))
           error1=readerror1[0:Par.SR].nonzero()
           error2=readerror2[0:Par.SR].nonzero()
           read1new=list(read1)
@@ -560,6 +467,8 @@ def pairend(Par,insert_size,MolSetX,Barcode_rand_qual,Seq_rand_qual1,Seq_rand_qu
                   rand_nuc=np.random.choice(['A','C','T','N'],1,p=np.asarray(SeqSubstitute_dict[(str(i),Seq_rand_qual1[index,i])][8:12]))
                elif read1[i]=='T':
                   rand_nuc=np.random.choice(['A','C','G','N'],1,p=np.asarray(SeqSubstitute_dict[(str(i),Seq_rand_qual1[index,i])][12:16]))
+               elif read1[i]=='N':
+                  rand_nuc=np.random.choice(['A','C','G','T'],1,p=np.asarray([0.25,0.25,0.25,0.25]))
                read1new[i]=rand_nuc[0]
 
           for i in error2[0]:
@@ -571,6 +480,8 @@ def pairend(Par,insert_size,MolSetX,Barcode_rand_qual,Seq_rand_qual1,Seq_rand_qu
                   rand_nuc=np.random.choice(['A','C','T','N'],1,p=np.asarray(SeqSubstitute_dict[(str(i),Seq_rand_qual2[index,i])][8:12]))
                elif read2[i]=='T':
                   rand_nuc=np.random.choice(['A','C','G','N'],1,p=np.asarray(SeqSubstitute_dict[(str(i),Seq_rand_qual2[index,i])][12:16]))
+               elif read2[i]=='N':
+                  rand_nuc=np.random.choice(['A','C','G','T'],1,p=np.asarray([0.25,0.25,0.25,0.25]))
                read2new[i]=rand_nuc[0]
           read1seq=MolSetX.barcode+'NNNNNNN'+''.join(read1new)
           read2seq=''.join(read2new)
@@ -588,19 +499,12 @@ def main():
     list=os.listdir(sys.argv[1])
     list.sort()
     Par=parameter()
-    #hap=1
     for i in range(len(list)):
         print('processing library '+str(i+1)+' for '+list[i])
         os.system('mkdir '+sys.argv[1]+'/lib'+str(i+1))
         deter=input_parameter(sys.argv[1]+'/'+list[i],Par)
         if deter==1:
-           if Par.hap==1:
-              haploid(Par,deter,str(i+1),str(1))
-           elif Par.hap==2:
-              for j in range(2):
-                  haploid(Par,deter,str(i+1),str(j+1))
-   # pool.close()
-   # pool.join()
+           haploid(Par,str(i+1))
     return None
 if __name__=="__main__":
     main()

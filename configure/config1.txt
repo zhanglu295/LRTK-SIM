@@ -1,15 +1,16 @@
 # path of template fasta file
-Path_Fasta=./example/chr19.fa
+Path_Fastahap1=./example/hap1.fa
+Path_Fastahap2=./example/hap2.fa
 # number of processors for parallele
-processors=25
+processors=50
 # coverage for long fragment
-CF=300
+CF=15
 # coverage for short reads
 CR=0.2
 # the average number of molecules for each droplet
-N_FP=8
+N_FP=16
 # the average length for long fragment (Kb)
-Mu_F=37
+Mu_F=20
 # length of short reads (bp)
 SR=151
 # fast mode ('Y' or 'N'; only simulate uniform sequencing quality)
@@ -19,7 +20,7 @@ Seq_error=Y
 # sequencing error rate
 Error_rate=0.01
 #path to sequencing error profile
-Path_Seq_qual=./example/error_profile_reads_processed.txt
+Path_Seq_qual=./example/error_profile_reads.txt
 #path to barcode error profile
 Path_Barcode_qual=./example/error_profile_barcode.txt
 # mean of insert size of short reads (bp)
@@ -28,12 +29,5 @@ Mu_IS=400
 Std_IS=10
 # barcode list
 Path_barcodepool=./example/barcodelist.txt
-# (option) Haploid (Hap=1) or Diploid (Hap=2)
-Hap=1
-# (option) including known variants from zipped vcf files. If Hap=2, you
-# should provide two vcf files as vcf1 and vcf2 
-# Notice :1) Make sure the *vcf.gz file was zipped using bgzip.
-#         2) Make sure the chromosome IDs are same in VCF and fasta file.
-#Path_VCF1=./example/hap1.vcf.gz
-#Path_VCF2=./example/hap2.vcf.gz
-
+# Haploid (Hap=1) or Diploid (Hap=2)
+Hap=2
