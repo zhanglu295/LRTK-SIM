@@ -1,6 +1,6 @@
 # path of template fasta file
-Path_Fastahap1=./example/hap1.fa
-Path_Fastahap2=./example/hap2.fa
+Path_Fastahap1=./resource/hap1.fa
+Path_Fastahap2=./resource/hap2.fa
 # number of processors for parallele
 processors=50
 # coverage for long fragment
@@ -20,14 +20,14 @@ Seq_error=Y
 # sequencing error rate
 Error_rate=0.01
 #path to sequencing error profile
-Path_Seq_qual=./example/error_profile_reads.txt
+Path_Seq_qual=./resource/error_profile_reads.txt
 #path to barcode error profile
-Path_Barcode_qual=./example/error_profile_barcode.txt
-# mean of insert size of short reads (bp)
+Path_Barcode_qual=./resource/error_profile_barcode.txt
+# mean of insert size for short reads (bp)
 Mu_IS=400
-# standard deviation of insert size of short reads (bp)
+# standard deviation of insert size for short reads (bp)
 Std_IS=10
 # barcode list
-Path_barcodepool=./example/barcodelist.txt
+Path_barcodepool=./resource/barcodelist.txt
 # Haploid (Hap=1) or Diploid (Hap=2)
 Hap=2
