@@ -1,7 +1,10 @@
-SIMLR: Linked reads simulator for 10X Chromium. 
+# SIMLR: Linked reads simulator for 10X Chromium. 
+## prerequired software
 
 [python3](https://www.python.org/downloads/source/) and [matplotlib](https://matplotlib.org/) are requeired.
+
 ## Basic usage
+
 `python SIMLR.py <path to config files>`
 
 Multiple libraries are allowed to simulated simutaneously and the parameters are included in the correspinding config files. The config files must be named as libX, where X should be a number as the library id.
