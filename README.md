@@ -1,6 +1,6 @@
 SIMLR: Linked reads simulator for 10X Chromium. 
 
-[python3](https://www.python.org/downloads/source/) and [matplotlib] (https://matplotlib.org/) are requeired.
+[python3](https://www.python.org/downloads/source/) and [matplotlib](https://matplotlib.org/) are requeired.
 ## Basic usage
 `python SIMLR.py <path to config files>`
 
