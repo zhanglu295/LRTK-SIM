@@ -8,9 +8,13 @@
 `usage: python gen_fasta.py -v sample.vcf -r ref.fasta -p newref -o ./work`
 
 `-v --vcf, the input path of compressed or uncompressed vcf file`
+
 `-r --reference, the path of compressed or uncompressed ref file`
+
 `-p --prefix, prefix of new reference files`
+
 `-o --out, the path to output`
+
 `-h --help, help info`
 
 
