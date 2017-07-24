@@ -3,7 +3,8 @@
 
 [python3](https://www.python.org/downloads/source/) and [matplotlib](https://matplotlib.org/) are requeired.
 
-##Facilitated program
+## Facilitated program
+
 `gen_fasta.py` can generate two haploid fasta files with variants from vcf and reference genome sequence.
 
 `usage: python gen_fasta.py -v sample.vcf -r ref.fasta -p newref -o ./work`
