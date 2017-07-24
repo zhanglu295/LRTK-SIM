@@ -494,7 +494,22 @@ def pairend(Par,insert_size,MolSetX,Barcode_rand_qual,Seq_rand_qual1,Seq_rand_qu
        read1qual='K'*Par.SR
        read2qual='K'*Par.SR
     return Short_reads_PE(read1seq,read1qual,start_for,end_for,read2seq,read2qual,start_rev,end_rev)
+def helpinfo():
+    helpinfo=\
+    '''
+        SIMLR: Linked reads simulator for 10X Chromium.
+        Version: 1.0.0
+        Dependents: Python (>=3.0)
+        Last Updated Date: 2017-07-22
+        Contact: zhanglu295@gmail.com
+
+        Usage: python SIMLR.py configure.txt
+    '''
+    print(helpinfo)
 def main():
+    if len(sys.argv) < 2:
+        helpinfo()
+        sys.exit(-1) 
     os.system('rm -rf '+sys.argv[1]+'/lib*')
     list=os.listdir(sys.argv[1])
     list.sort()
