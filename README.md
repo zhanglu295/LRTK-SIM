@@ -63,10 +63,12 @@ Two examples of config file (config1.txt and config2.txt) are prepared in the `d
 
 `line33`: `Hap`, Haploid (Hap=1) or Diploid (Hap=2)
 
-##Simulation for metagenomics 
-Different from dipoid assemblies, the species abundances in metagenomics sequencing may be significantly different. SIMLR can also simulate metagenomics data by incorporate user specified abundance file with two columns: 1. sequence name (should be the same as reference sequence) 2. abundance (sum to 1 for all the species). One example is given in `meta_config` folder
+## Simulation for metagenomics 
+
+Different from dipoid assemblies, the species abundances in metagenomics sequencing may be significantly different. `SIMLR` can also simulate metagenomics data by incorporate user specified abundance file with two columns: 1. sequence name (should be the same as reference sequence) 2. abundance (sum to 1 for all the species). One example is given in `meta_config` folder
 
 ## Output
+
 `SIMLR` generates one folder for each library named after libX (X is the library id) in the path of config files. Two compressed fastq files, started by read-I1 (sample index) and read-RA (short reads) are generated, which are required by 10X official pipelines [Long Ranger](https://support.10xgenomics.com/genome-exome/software/pipelines/latest/what-is-long-ranger) and [Supernova](https://support.10xgenomics.com/de-novo-assembly/software/overview/welcome).
 
 
