@@ -1,15 +1,16 @@
 import sys
-from functools import partial
+#from functools import partial
 import multiprocessing
 import numpy as np
 import os
-import matplotlib
+import gzip
+#import matplotlib
 # Force matplotlib to not use any Xwindows backend.
-matplotlib.use('Agg')
-import matplotlib.pyplot as plt
-import plotly.plotly as py
-import pdb
-import time
+#matplotlib.use('Agg')
+#import matplotlib.pyplot as plt
+#import plotly.plotly as py
+#import pdb
+#import time
 from collections import defaultdict
 #Parameter defination
 large_droplet=40000000
@@ -60,6 +61,7 @@ class parameter(object):
         self.Fast_mode='Y'
         self.Error_rate=0
         self.processor=1
+        self.redundance='N'
 #read parameters from file
 def input_parameter(argv,parameter_struc):
     deter=1
@@ -71,6 +73,8 @@ def input_parameter(argv,parameter_struc):
               parameter_struc.Fastahap1=Par[1].strip('\n')
            elif Par[0]=='Path_Fastahap2':
               parameter_struc.Fastahap2=Par[1].strip('\n')
+           elif Par[0]=='Path_adundance':
+              parameter_struc.redundance=Par[1].strip('\n')
            elif Par[0]=='Fast_mode':
               parameter_struc.Fast_mode=Par[1].strip('\n')
            elif Par[0]=='processors':
@@ -155,13 +159,36 @@ def input_parameter(argv,parameter_struc):
        parameter_struc.CF=parameter_struc.CF/2
     return deter
 #read template sequence
+def input_seq_zip(in_path):
+    reflist=[]
+    reftitle=[]
+    sequence=''
+    f=gzip.open(in_path,"r")
+    index=0
+    for line in f:
+        if line.decode()[0]=='>':
+           title=line.decode().strip('\n').split(' ')[0]
+           reftitle.append(title[1:])
+           if index==0:
+              index+=1
+           else:
+              reflist.append(sequence)
+              sequence=''
+        else:
+           sequence+=line.decode().strip('\n')
+    reflist.append(sequence)
+    f.close()
+    return reflist,reftitle
 def input_seq(in_path):
     reflist=[]
+    reftitle=[]
     sequence=''
     f=open(in_path,"r")
     index=0
     for line in f:
         if line[0]=='>':
+           title=line.strip('\n').split(' ')[0]
+           reftitle.append(title[1:])
            if index==0:
               index+=1
            else:
@@ -171,19 +198,38 @@ def input_seq(in_path):
            sequence+=line.strip('\n')
     reflist.append(sequence)
     f.close()
-    return reflist
-
+    return reflist,reftitle
 #sapmpling long fragments from empirical distribution
-def randomlong(Par,reflist):
+def read_abundance(Par):
+    inputfile=open(Par.redundance,'r')
+    abun_dict=defaultdict(float)
+    for line in inputfile:
+        info=line.split('\t')
+        abun_dict[info[0]]=float(info[1])
+    inputfile.close()
+    return abun_dict
+
+def randomlong(Par,reflist,reftitle):
+    if Par.redundance!='N':
+       abun_dict=read_abundance(Par)
     global N_frag
     N_frag=0
+    frag_list=[]
     MolSet=[]
     For_hist=[]
     index=0
+    T_frag=0
     for seq in reflist:
         #calculate required number of molecules
         lensingle=len(seq)
-        N_frag=int(lensingle*Par.CF/(Par.Mu_F*1000))
+        T_frag=T_frag+int(lensingle*Par.CF/(Par.Mu_F*1000))
+    for seq in reflist:
+        #calculate required number of molecules
+        lensingle=len(seq)
+        if Par.redundance=='N':
+            N_frag=int(lensingle*Par.CF/(Par.Mu_F*1000))
+        else:    
+            N_frag=int(abun_dict[reftitle[index]]*T_frag)
         #randome simulate molecules
         for i in range(N_frag):
             start=int(np.random.uniform(low=0,high=lensingle))
@@ -265,19 +311,29 @@ def haploid(Par,lib):
     Figure_num_molecule=[]
     droplet_container=[]
     if Par.hap==1:
-       reflist=input_seq(Par.Fastahap1)
+       if '.gz' in Par.Fastahap1:
+           (reflist,reftitle)=input_seq_zip(Par.Fastahap1)
+       else:
+            (reflist,reftitle)=input_seq(Par.Fastahap1)
     if Par.hap==2:
-       reflist=input_seq(Par.Fastahap1)
-       reflist2=input_seq(Par.Fastahap2)
+       if '.gz' in Par.Fastahap1:
+           (reflist,reftitle)=input_seq_zip(Par.Fastahap1)
+       else:
+           (reflist,reftitle)=input_seq(Par.Fastahap1)
+       if '.gz' in Par.Fastahap2:
+           (reflist,reftitle)=input_seq_zip(Par.Fastahap2)
+       else:
+           (reflist2,reftitle2)=input_seq(Par.Fastahap2)
        reflist.extend(reflist2)
     #recode cut position of long fragment
     print('read template finished (library '+lib+')')
-    MolSet=randomlong(Par,reflist)
+    MolSet=randomlong(Par,reflist,reftitle)
     print('generate molecule finished (library '+lib+')')
     #calculate number of droplet
     assign_drop=deternumdroplet(N_frag,Par.N_FP)
     print('assign molecule to droplet finished (library '+lib+')')
     MolSet=selectbarcode(Par.barcodepool,assign_drop,MolSet,droplet_container)
+    #print(len(MolSet))
     print('assign barcode to molecule finished (library '+lib+')')
     print('begin to simulate short reads, please wait...')
     pool = multiprocessing.Pool(int(Par.processor),initializer= child_initialize,initargs = (MolSet,reflist,))
@@ -293,33 +349,33 @@ def haploid(Par,lib):
         pool.apply_async(SIMSR,(Mol_process[m],Mol_process[m+1],Par,lib,m,))
     pool.close()
     pool.join()
-    os.system('touch read-RA_si-CCTGGAGA_lib-00'+lib+'.fastq')
-    os.system('touch read-I1_si-CCTGGAGA_lib-00'+lib+'.fastq')
+    os.system('touch Read_S1_L00'+lib+'_R1_001.fastq')
+    os.system('touch Read_S1_L00'+lib+'_R2_001.fastq')
     for m in range(len(Mol_process)-1):
-        os.system('cat read-RA_si-CCTGGAGA_lib-00'+lib+'_id-'+str(m)+'.fastq >> read-RA_si-CCTGGAGA_lib-00'+lib+'.fastq')
-        os.system('cat read-I1_si-CCTGGAGA_lib-00'+lib+'_id-'+str(m)+'.fastq >> read-I1_si-CCTGGAGA_lib-00'+lib+'.fastq')
-        os.system('rm read-RA_si-CCTGGAGA_lib-00'+lib+'_id-'+str(m)+'.fastq')
-        os.system('rm read-I1_si-CCTGGAGA_lib-00'+lib+'_id-'+str(m)+'.fastq')
-    os.system('gzip read-RA_si-CCTGGAGA_lib-00'+lib+'.fastq')
-    os.system('gzip read-I1_si-CCTGGAGA_lib-00'+lib+'.fastq')
-    os.system('mv read-RA_si-CCTGGAGA_lib-00'+lib+'.fastq.gz '+sys.argv[1]+'/lib'+lib)
-    os.system('mv read-I1_si-CCTGGAGA_lib-00'+lib+'.fastq.gz '+sys.argv[1]+'/lib'+lib)
-    plt.hist(Figure_len_molecule)
-    plt.xlabel('Molecule length')
-    plt.ylabel('Number of molecules')
-    plt.title('Histogram of molecule length (total '+str(len(Figure_len_molecule))+' molecules)')
-    plt.show()
-    plt.savefig('Len_Molecule_hist_lib'+lib+'.png')
-    plt.close()
-    plt.hist(Figure_num_molecule)
-    plt.xlabel('Number of molecules in droplets')
-    plt.ylabel('Number of molecules')
-    plt.title('Histogram of the number of molecules in droplets (total '+str(len(Figure_num_molecule))+' droplet)')
-    plt.show()
-    plt.savefig('Num_Molecule_hist_lib'+lib+'.png')
-    plt.close()
-    os.system('mv Num_Molecule_hist_lib'+lib+'.png '+sys.argv[1]+'/lib'+lib)
-    os.system('mv Len_Molecule_hist_lib'+lib+'.png '+sys.argv[1]+'/lib'+lib)
+        os.system('cat Read_S1_L00'+lib+'_id'+str(m)+'_R1_001.fastq >> Read_S1_L00'+lib+'_R1_001.fastq')
+        os.system('cat Read_S1_L00'+lib+'_id'+str(m)+'_R2_001.fastq >> Read_S1_L00'+lib+'_R2_001.fastq')
+        os.system('rm Read_S1_L00'+lib+'_id'+str(m)+'_R1_001.fastq')
+        os.system('rm Read_S1_L00'+lib+'_id'+str(m)+'_R2_001.fastq')
+    os.system('gzip Read_S1_L00'+lib+'_R1_001.fastq')
+    os.system('gzip Read_S1_L00'+lib+'_R2_001.fastq')
+    os.system('mv Read_S1_L00'+lib+'_R1_001.fastq.gz '+sys.argv[1]+'/lib'+lib)
+    os.system('mv Read_S1_L00'+lib+'_R2_001.fastq.gz '+sys.argv[1]+'/lib'+lib)
+    #plt.hist(Figure_len_molecule)
+    #plt.xlabel('Molecule length')
+    #plt.ylabel('Number of molecules')
+    #plt.title('Histogram of molecule length (total '+str(len(Figure_len_molecule))+' molecules)')
+    #plt.show()
+    #plt.savefig('Len_Molecule_hist_lib'+lib+'.png')
+    #plt.close()
+    #plt.hist(Figure_num_molecule)
+    #plt.xlabel('Number of molecules in droplets')
+    #plt.ylabel('Number of molecules')
+    #plt.title('Histogram of the number of molecules in droplets (total '+str(len(Figure_num_molecule))+' droplet)')
+    #plt.show()
+    #plt.savefig('Num_Molecule_hist_lib'+lib+'.png')
+    #plt.close()
+    #os.system('mv Num_Molecule_hist_lib'+lib+'.png '+sys.argv[1]+'/lib'+lib)
+    #os.system('mv Len_Molecule_hist_lib'+lib+'.png '+sys.argv[1]+'/lib'+lib)
     print('Library '+lib+' simulation completed!')
     return None
 def reverseq(seq):
@@ -374,8 +430,9 @@ def Input_SeqQual(Par):
     return Qual_dict,Prob_dict,Substitute_dict
 def SIMSR(start,end,Par,lib,jobid):
     MolSet_cand=MolSet[start:end]
-    f_reads = open('read-RA_si-CCTGGAGA_lib-00'+lib+'_id-'+str(jobid)+'.fastq',"w")
-    f_sample = open('read-I1_si-CCTGGAGA_lib-00'+lib+'_id-'+str(jobid)+'.fastq',"w")
+    f_reads1 = open('Read_S1_L00'+lib+'_id'+str(jobid)+'_R1_001.fastq',"w")
+    f_reads2 = open('Read_S1_L00'+lib+'_id'+str(jobid)+'_R2_001.fastq',"w")
+    #f_sample = open('read-I1_si-CCTGGAGA_lib-00'+lib+'_id-'+str(jobid)+'.fastq',"w")
     [SeqQual_dict,SeqProb_dict,SeqSubstitute_dict]=Input_SeqQual(Par)
     [BarcodeQual_dict,BarcodeProb_dict]=Input_BarcodeQual(Par)
     last_reads=0
@@ -415,21 +472,22 @@ def SIMSR(start,end,Par,lib,jobid):
             if read1N.count('N')>(Par.SR-23)*0.1 or read2seq.count('N')>Par.SR*0.1:
                continue
             readname='@ST-K00126:'+str(i+1)+':H5W53BBXX:'+str(MolSet_cand[i].start)+':'+str(MolSet_cand[i].end)+':'+str(Totalreads[j].start1)+':'+str(Totalreads[j].end1)
-            f_reads.write(readname+' 1:N:0\n')
-            f_reads.write(read1seq+'\n')
-            f_reads.write('+\n')
-            f_reads.write(read1qual)
-            f_reads.write('\n')
-            f_reads.write(readname+' 3:N:0\n')
-            f_reads.write(read2seq+'\n')
-            f_reads.write('+\n')
-            f_reads.write(read2qual+'\n')
-            f_sample.write(readname+' 2:N:0\n')
-            f_sample.write('CCTGGAGA\n')
-            f_sample.write('+\n')
-            f_sample.write('AAFFFKKK\n')
-    f_reads.close()
-    f_sample.close()
+            f_reads1.write(readname+' 1:N:0\n')
+            f_reads1.write(read1seq+'\n')
+            f_reads1.write('+\n')
+            f_reads1.write(read1qual)
+            f_reads1.write('\n')
+            f_reads2.write(readname+' 3:N:0\n')
+            f_reads2.write(read2seq+'\n')
+            f_reads2.write('+\n')
+            f_reads2.write(read2qual+'\n')
+            #f_sample.write(readname+' 2:N:0\n')
+            #f_sample.write('CCTGGAGA\n')
+            #f_sample.write('+\n')
+            #f_sample.write('AAFFFKKK\n')
+    f_reads1.close()
+    f_reads2.close()
+    #f_sample.close()
     return None
 def pairend(Par,insert_size,MolSetX,Barcode_rand_qual,Seq_rand_qual1,Seq_rand_qual2,All_forward,All_reverse,index,SeqSubstitute_dict):
     is_read=int(np.absolute(insert_size[index]))
