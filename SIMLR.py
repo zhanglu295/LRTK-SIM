@@ -1,17 +1,9 @@
-import sys
-#from functools import partial
-import multiprocessing
-import numpy as np
-import os
-import gzip
-#import matplotlib
-# Force matplotlib to not use any Xwindows backend.
-#matplotlib.use('Agg')
-#import matplotlib.pyplot as plt
-#import plotly.plotly as py
-#import pdb
-#import time
-from collections import defaultdict
+#import sys
+#import multiprocessing
+#import numpy as np
+#import os
+#import gzip
+#from collections import defaultdict
 #Parameter defination
 large_droplet=40000000
 large_template=1000000000
@@ -561,13 +553,19 @@ def helpinfo():
         Last Updated Date: 2017-07-22
         Contact: zhanglu295@gmail.com
 
-        Usage: python SIMLR.py configure.txt
+        Usage: python SIMLR.py ./configure
     '''
     print(helpinfo)
 def main():
+    import sys
     if len(sys.argv) < 2:
         helpinfo()
-        sys.exit(-1) 
+        sys.exit(-1)  
+    import multiprocessing
+    import numpy as np
+    import os
+    import gzip
+    from collections import defaultdict
     os.system('rm -rf '+sys.argv[1]+'/lib*')
     list=os.listdir(sys.argv[1])
     list.sort()
