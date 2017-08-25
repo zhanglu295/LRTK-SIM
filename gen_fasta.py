@@ -30,7 +30,7 @@ def input_vcf_gz(in_path):
         BB=AA.split('\t')
         if BB[0]=='#CHROM':
            start=1
-           contiue
+           continue
         if start==1 and len(BB[3])==1 and len(BB[4])==1 and BB[3]!='-' and BB[4]!='-':
            CC=BB[8].split(':')
            index=CC.index('GT')
@@ -46,17 +46,19 @@ def input_ref(in_path,chrlist):
     f=open(in_path,"r")
     line_index=0
     chr_index=0
+    chrid=""
     for line in f:
-        if line_index==0:
-           line_index+=1
-           continue
         if line[0]!=">":
            sequence+=line.strip('\n').upper()
         else:
-           ref[chrlist[chr_index]]=sequence
+           if line_index!=0:
+              ref[chrid]=sequence
+           chrid=str(line.split()[0][1:])
+           #ref[chrlist[chr_index]]=sequence
            sequence=""
-           chr_index+=1
-    ref[chrlist[chr_index]]=sequence
+        line_index+=1
+           #chr_index+=1
+    ref[chrid]=sequence
     f.close()
     return ref
 def input_ref_gz(in_path,chrlist):
@@ -64,24 +66,24 @@ def input_ref_gz(in_path,chrlist):
     sequence=""
     f=gzip.open(in_path,"r")
     line_index=0
-    chr_index=0
+    #chr_index=0
+    chrid=""
     for line in f:
-        if line_index==0:
-           line_index+=1
-           continue
-        if line.decode()[0]!=">" or line_index==0:
+        if line.decode()[0]!=">":
            sequence+=line.decode().strip('\n').upper()
-           line_index+=1
         else:
-           ref[chrlist[chr_index]]=sequence
+           if line_index!=0:
+              ref[chrid]=sequence
+           chrid=str(line.split()[0][1:])
            sequence=""
-           chr_index+=1
-    ref[chrlist[chr_index]]=sequence
+           #chr_index+=1
+        line_index+=1
+    ref[chrid]=sequence
     f.close()
     return ref
 def insertvar(ref,vcf,outprefix):
-    out1=open(outprefix+'hap1.fa','w')
-    out2=open(outprefix+'hap2.fa','w') 
+    out1=open(outprefix+'_hap1.fa','w')
+    out2=open(outprefix+'_hap2.fa','w') 
     for key,value in ref.items():
         newseq1=list(value)
         newseq2=list(value)
@@ -113,7 +115,7 @@ def helpinfo():
         Usage: python gen_fasta.py <options>
 
         Options:
-                -v --vcf, the input path of compressed or uncompressed vcf file
+                -v --vcf, the path of compressed or uncompressed vcf file
                 -r --reference, the path of compressed or uncompressed ref file
                 -p --prefix, prefix of new reference files
                 -o --out, the path to output
@@ -144,11 +146,14 @@ if __name__ == '__main__':
                 sys.exit(-1)
     if "gz" in inputvcf:
         (varlist,chrlist)=input_vcf_gz(inputvcf)
+        for i in chrlist:
+            print(i)
     else:
         (varlist,chrlist)=input_vcf(inputvcf)
     if "gz" in inputref:
         refseq=input_ref_gz(inputref,chrlist)
     else:
         refseq=input_ref(inputref,chrlist)
+    print(refseq.keys()) 
     insertvar(refseq,varlist,output+'/'+prefix)
 
