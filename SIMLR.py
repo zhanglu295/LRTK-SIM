@@ -1,9 +1,10 @@
-#import sys
-#import multiprocessing
-#import numpy as np
-#import os
-#import gzip
-#from collections import defaultdict
+#!/usr/bin/env python
+import sys
+import multiprocessing
+import numpy as np
+import os
+import gzip
+from collections import defaultdict
 #Parameter defination
 large_droplet=40000000
 large_template=1000000000
@@ -553,26 +554,23 @@ def helpinfo():
         Last Updated Date: 2017-07-22
         Contact: zhanglu295@gmail.com
 
-        Usage: python SIMLR.py ./configure
+        Usage: python SIMLR.py ./diploid_config \\
+               python SIMLR.py ./meta_config
     '''
     print(helpinfo)
 def main():
-    import sys
     if len(sys.argv) < 2:
         helpinfo()
         sys.exit(-1)  
-    import multiprocessing
-    import numpy as np
-    import os
-    import gzip
-    from collections import defaultdict
     os.system('rm -rf '+sys.argv[1]+'/lib*')
     list=os.listdir(sys.argv[1])
     list.sort()
     Par=parameter()
     for i in range(len(list)):
-        print('processing library '+str(i+1)+' for '+list[i])
-        os.system('mkdir '+sys.argv[1]+'/lib'+str(i+1))
+        libname=list[i].split('.')
+        print('processing library '+str(i+1)+' for '+libname[0])
+        libname=
+        os.system('mkdir '+sys.argv[1]+'/lib_'+libname[0])
         deter=input_parameter(sys.argv[1]+'/'+list[i],Par)
         if deter==1:
            haploid(Par,str(i+1))
