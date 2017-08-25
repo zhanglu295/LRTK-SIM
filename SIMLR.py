@@ -569,7 +569,6 @@ def main():
     for i in range(len(list)):
         libname=list[i].split('.')
         print('processing library '+str(i+1)+' for '+libname[0])
-        libname=
         os.system('mkdir '+sys.argv[1]+'/lib_'+libname[0])
         deter=input_parameter(sys.argv[1]+'/'+list[i],Par)
         if deter==1:
