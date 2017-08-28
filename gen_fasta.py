@@ -89,7 +89,7 @@ def insertvar(ref,vcf,outprefix):
         newseq2=list(value)
         for pos_infor in vcf[key]:
             position=int(pos_infor[0])-1
-            if pos_infor[3]=='0/1' or  pos_infor[3]=='0|1':
+            if pos_infor[3]=='0/1' or pos_infor[3]=='0|1' and pos_infor[3]=='1/0' or pos_infor[3]=='1|0':
                newseq1[position]=pos_infor[2]
             if pos_infor[3]=='1/1' or pos_infor[3]=='1|1':
                newseq1[position]=pos_infor[2]
