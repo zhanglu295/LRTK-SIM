@@ -342,17 +342,17 @@ def haploid(Par,lib):
         pool.apply_async(SIMSR,(Mol_process[m],Mol_process[m+1],Par,lib,m,))
     pool.close()
     pool.join()
-    os.system('touch Read_S1_L00'+lib+'_R1_001.fastq')
-    os.system('touch Read_S1_L00'+lib+'_R2_001.fastq')
+    os.system('touch '+lib+'_S1_L001_R1_001.fastq')
+    os.system('touch '+lib+'_S1_L001_R2_001.fastq')
     for m in range(len(Mol_process)-1):
-        os.system('cat Read_S1_L00'+lib+'_id'+str(m)+'_R1_001.fastq >> Read_S1_L00'+lib+'_R1_001.fastq')
-        os.system('cat Read_S1_L00'+lib+'_id'+str(m)+'_R2_001.fastq >> Read_S1_L00'+lib+'_R2_001.fastq')
-        os.system('rm Read_S1_L00'+lib+'_id'+str(m)+'_R1_001.fastq')
-        os.system('rm Read_S1_L00'+lib+'_id'+str(m)+'_R2_001.fastq')
-    os.system('gzip Read_S1_L00'+lib+'_R1_001.fastq')
-    os.system('gzip Read_S1_L00'+lib+'_R2_001.fastq')
-    os.system('mv Read_S1_L00'+lib+'_R1_001.fastq.gz '+sys.argv[1]+'/lib'+lib)
-    os.system('mv Read_S1_L00'+lib+'_R2_001.fastq.gz '+sys.argv[1]+'/lib'+lib)
+        os.system('cat '+lib+'_S1_L001_id'+str(m)+'_R1_001.fastq >> '+lib+'_S1_L001_R1_001.fastq')
+        os.system('cat '+lib+'_S1_L001_id'+str(m)+'_R2_001.fastq >> '+lib+'_S1_L001_R2_001.fastq')
+        os.system('rm '+lib+'_S1_L001_id'+str(m)+'_R1_001.fastq')
+        os.system('rm '+lib+'_S1_L001_id'+str(m)+'_R2_001.fastq')
+    os.system('gzip '+lib+'_S1_L001_R1_001.fastq')
+    os.system('gzip '+lib+'_S1_L001_R2_001.fastq')
+    os.system('mv '+lib+'_S1_L001_R1_001.fastq.gz '+sys.argv[1]+'/lib_'+lib)
+    os.system('mv '+lib+'_S1_L001_R2_001.fastq.gz '+sys.argv[1]+'/lib_'+lib)
     #plt.hist(Figure_len_molecule)
     #plt.xlabel('Molecule length')
     #plt.ylabel('Number of molecules')
@@ -423,8 +423,8 @@ def Input_SeqQual(Par):
     return Qual_dict,Prob_dict,Substitute_dict
 def SIMSR(start,end,Par,lib,jobid):
     MolSet_cand=MolSet[start:end]
-    f_reads1 = open('Read_S1_L00'+lib+'_id'+str(jobid)+'_R1_001.fastq',"w")
-    f_reads2 = open('Read_S1_L00'+lib+'_id'+str(jobid)+'_R2_001.fastq',"w")
+    f_reads1 = open(lib+'_S1_L001_id'+str(jobid)+'_R1_001.fastq',"w")
+    f_reads2 = open(lib+'_S1_L001_id'+str(jobid)+'_R2_001.fastq',"w")
     #f_sample = open('read-I1_si-CCTGGAGA_lib-00'+lib+'_id-'+str(jobid)+'.fastq',"w")
     [SeqQual_dict,SeqProb_dict,SeqSubstitute_dict]=Input_SeqQual(Par)
     [BarcodeQual_dict,BarcodeProb_dict]=Input_BarcodeQual(Par)
@@ -554,8 +554,11 @@ def helpinfo():
         Last Updated Date: 2017-07-22
         Contact: zhanglu295@gmail.com
 
-        Usage: python SIMLR.py ./diploid_config \\
-               python SIMLR.py ./meta_config
+        Usage: python SIMLR.py <path to configuration files>
+
+        Example: python SIMLR.py ./diploid_config (for diploid)\
+                 
+                 python SIMLR.py ./meta_config (for metagenomics)
     '''
     print(helpinfo)
 def main():
@@ -572,7 +575,7 @@ def main():
         os.system('mkdir '+sys.argv[1]+'/lib_'+libname[0])
         deter=input_parameter(sys.argv[1]+'/'+list[i],Par)
         if deter==1:
-           haploid(Par,str(i+1))
+           haploid(Par,libname[0])
     return None
 if __name__=="__main__":
     main()
