@@ -307,14 +307,14 @@ def haploid(Par,lib):
        if '.gz' in Par.Fastahap1:
            (reflist,reftitle)=input_seq_zip(Par.Fastahap1)
        else:
-            (reflist,reftitle)=input_seq(Par.Fastahap1)
+           (reflist,reftitle)=input_seq(Par.Fastahap1)
     if Par.hap==2:
        if '.gz' in Par.Fastahap1:
            (reflist,reftitle)=input_seq_zip(Par.Fastahap1)
        else:
            (reflist,reftitle)=input_seq(Par.Fastahap1)
        if '.gz' in Par.Fastahap2:
-           (reflist,reftitle)=input_seq_zip(Par.Fastahap2)
+           (reflist2,reftitle2)=input_seq_zip(Par.Fastahap2)
        else:
            (reflist2,reftitle2)=input_seq(Par.Fastahap2)
        reflist.extend(reflist2)
