@@ -5,7 +5,7 @@ SIMLR was written by [python3](https://www.python.org/downloads/source/) and six
 
 
 
-## Facilitated program
+## Facilitative program
 
 `gen_fasta.py` can generate two haploid fasta files with variants from vcf and reference genome sequence.
 
