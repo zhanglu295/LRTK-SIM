@@ -106,11 +106,11 @@ def insertvar(ref,vcf,outprefix):
 def helpinfo():
     helpinfo=\
     '''
-        Generate fasta files for simulating linked reads by SIMLR
+        Generate fasta files as input of LRTK-SIM
         Version: 1.0.0
         Dependents: Python (>=3.0)
         Last Updated Date: 2017-07-22
-        Contact: zhanglu295@gmail.com
+        Contact: zhanglu2@stanford.edu
 
         Usage: python gen_fasta.py <options>
 
