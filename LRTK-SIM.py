@@ -197,7 +197,7 @@ def read_abundance(Par):
     inputfile=open(Par.redundance,'r')
     abun_dict=defaultdict(float)
     for line in inputfile:
-        info=line.split('\t')
+        info=line.strip('\n').split('\t')
         abun_dict[info[0]]=float(info[1])
     inputfile.close()
     return abun_dict
