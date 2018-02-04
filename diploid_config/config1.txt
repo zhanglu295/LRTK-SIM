@@ -30,4 +30,4 @@ Std_IS=10
 # barcode list
 Path_barcodepool=./resource/barcodelist.txt
 # Haploid (Hap=1) or Diploid (Hap=2)
-Hap=1
+Hap=2
