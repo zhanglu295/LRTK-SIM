@@ -102,7 +102,7 @@ def input_parameter(argv,parameter_struc):
    
 
     if parameter_struc.hap==1:
-       print( os.path.isfile(parameter_struc.Fastahap1))
+       #print(os.path.isfile(parameter_struc.Fastahap1))
        if os.path.isfile(parameter_struc.Fastahap1)==False:
           deter=0
           print('template fasta file (Fasta) does not exist')
@@ -322,13 +322,11 @@ def haploid(Par,lib):
     #recode cut position of long fragment
     print('read template finished (library '+lib+')')
     MolSet=randomlong(Par,reflist,reftitle)
-    print(len(MolSet))
     print('generate molecule finished (library '+lib+')')
     #calculate number of droplet
     assign_drop=deternumdroplet(N_frag,Par.N_FP)
     print('assign molecule to droplet finished (library '+lib+')')
     MolSet=selectbarcode(Par.barcodepool,assign_drop,MolSet,droplet_container)
-    print(len(MolSet))
     print('assign barcode to molecule finished (library '+lib+')')
     print('begin to simulate short reads, please wait...')
     pool = multiprocessing.Pool(int(Par.processor),initializer= child_initialize,initargs = (MolSet,reflist,))
