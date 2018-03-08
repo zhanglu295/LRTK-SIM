@@ -216,28 +216,14 @@ def randomlong(Par,reflist,reftitle):
     T_frag_eff=0
     ref_total_len=0
     ref_effective_len=0
-    #for seq in reflist:
-        #calculate required number of molecules
-    #    lensingle=len(seq)
-    #    ref_total_len+=lensingle/len(reflist)
-       # if Par.redundance!='N':
-       #     ref_effective_len+=abun_dict[reftitle[index]]*lensingle
-       #     index+=1
-    #    T_frag=T_frag+int(lensingle*Par.CF/(Par.Mu_F*1000))
-    #if Par.redundance!='N':
-    #    T_frag_eff=int(ref_effective_len*Par.CF/(Par.Mu_F*1000))
-    #print(ref_effective_len)
-    #index=0
     for seq in reflist:
         #calculate required number of molecule
         lensingle=len(seq)
         if Par.redundance=='N':
             N_frag=int(lensingle*Par.CF/(Par.Mu_F*1000))
         else:    
-            #print(abun_dict[reftitle[index]])
             N_frag=int(abun_dict[reftitle[index]]*lensingle*len(reflist)*Par.CF/(Par.Mu_F*1000))
         #randome simulate molecules
-        print(str(reftitle[index])+'\t'+str(N_frag))
         for i in range(N_frag):
             start=int(np.random.uniform(low=0,high=lensingle))
             length=int(np.random.exponential(scale=Par.Mu_F*1000))
@@ -332,6 +318,7 @@ def haploid(Par,lib):
        else:
            (reflist2,reftitle2)=input_seq(Par.Fastahap2)
        reflist.extend(reflist2)
+       reftitle.extend(reftitle2)
     #recode cut position of long fragment
     print('read template finished (library '+lib+')')
     MolSet=randomlong(Par,reflist,reftitle)
@@ -353,8 +340,6 @@ def haploid(Par,lib):
         t=t+maxprocessor
     Mol_process.append(len(MolSet)-1)
     for m in range(len(Mol_process)-1):
-        #print(m)
-        #SIMSR(Mol_process[m],Mol_process[m+1],Par,lib,m)
         pool.apply_async(SIMSR,(Mol_process[m],Mol_process[m+1],Par,lib,m,))
     pool.close()
     pool.join()
@@ -365,8 +350,6 @@ def haploid(Par,lib):
         os.system('cat '+lib+'_S1_L001_id'+str(m)+'_R2_001.fastq.gz >> '+lib+'_S1_L001_R2_001.fastq.gz')
         os.system('rm '+lib+'_S1_L001_id'+str(m)+'_R1_001.fastq.gz')
         os.system('rm '+lib+'_S1_L001_id'+str(m)+'_R2_001.fastq.gz')
-    #os.system('gzip '+lib+'_S1_L001_R1_001.fastq')
-    #os.system('gzip '+lib+'_S1_L001_R2_001.fastq')
     os.system('mv '+lib+'_S1_L001_R1_001.fastq.gz '+sys.argv[1]+'/lib_'+lib)
     os.system('mv '+lib+'_S1_L001_R2_001.fastq.gz '+sys.argv[1]+'/lib_'+lib)
     #plt.hist(Figure_len_molecule)
@@ -441,7 +424,6 @@ def SIMSR(start,end,Par,lib,jobid):
     MolSet_cand=MolSet[start:end]
     f_reads1 = gzip.open(lib+'_S1_L001_id'+str(jobid)+'_R1_001.fastq.gz',"wb")
     f_reads2 = gzip.open(lib+'_S1_L001_id'+str(jobid)+'_R2_001.fastq.gz',"wb")
-    #f_sample = open('read-I1_si-CCTGGAGA_lib-00'+lib+'_id-'+str(jobid)+'.fastq',"w")
     [SeqQual_dict,SeqProb_dict,SeqSubstitute_dict]=Input_SeqQual(Par)
     [BarcodeQual_dict,BarcodeProb_dict]=Input_BarcodeQual(Par)
     last_reads=0
@@ -490,13 +472,8 @@ def SIMSR(start,end,Par,lib,jobid):
             f_reads2.write((read2seq+'\n').encode('utf-8'))
             f_reads2.write(('+\n').encode('utf-8'))
             f_reads2.write((read2qual+'\n').encode('utf-8'))
-            #f_sample.write(readname+' 2:N:0\n')
-            #f_sample.write('CCTGGAGA\n')
-            #f_sample.write('+\n')
-            #f_sample.write('AAFFFKKK\n')
     f_reads1.close()
     f_reads2.close()
-    #f_sample.close()
     return None
 def pairend(Par,insert_size,MolSetX,Barcode_rand_qual,Seq_rand_qual1,Seq_rand_qual2,All_forward,All_reverse,index,SeqSubstitute_dict):
     is_read=int(np.absolute(insert_size[index]))
